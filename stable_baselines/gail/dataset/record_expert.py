@@ -9,8 +9,7 @@ from stable_baselines.common.base_class import BaseRLModel
 from stable_baselines.common.vec_env import VecEnv, VecFrameStack
 
 
-def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
-                         n_episodes=100, image_folder='recorded_images'):
+def generate_expert_traj(model, save_path, env=None, n_timesteps=0, n_episodes=100, image_folder='recorded_images'):
     """
     Train expert controller (if needed) and record expert trajectories.
 
@@ -38,7 +37,6 @@ def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
     is_vec_env = False
     if isinstance(env, VecEnv):
         is_vec_env = True
-        assert env.num_envs == 1, 'You must use only one env to record expert data'
 
     # Sanity check
     assert (isinstance(env.observation_space, spaces.Box) or
@@ -87,6 +85,12 @@ def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
     episode_starts.append(True)
     reward_sum = 0.0
     idx = 0
+
+    if is_vec_env:
+        mask = [True for _ in range(env.num_envs)]
+    else:
+        mask = None
+
     while ep_idx < n_episodes:
         if record_images:
             image_path = os.path.join(image_folder, "{}.{}".format(idx, image_ext))
@@ -101,11 +105,19 @@ def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
             observations.append(obs)
 
         if isinstance(model, BaseRLModel):
-            action, _ = model.predict(obs)
+            action, _ = model.predict(obs, mask=mask)
         else:
             action = model(obs)
 
         obs, reward, done, _ = env.step(action)
+
+        # Use only first env
+        if is_vec_env:
+
+            mask = [reward[0] for _ in range(env.num_envs)]
+            action = np.array([action[0]])
+            reward = np.array([reward[0]])
+            done = np.array([done[0]])
 
         actions.append(action)
         rewards.append(reward)
@@ -113,7 +125,13 @@ def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
         reward_sum += reward
         idx += 1
         if done:
-            obs = env.reset()
+
+            if is_vec_env:
+                if env.num_envs == 1:
+                    obs = env.reset()
+            else:
+                obs = env.reset()
+
             episode_returns[ep_idx] = reward_sum
             reward_sum = 0.0
             ep_idx += 1
