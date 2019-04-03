@@ -9,7 +9,8 @@ from stable_baselines.common.base_class import BaseRLModel
 from stable_baselines.common.vec_env import VecEnv, VecFrameStack
 
 
-def generate_expert_traj(model, save_path, env=None, n_timesteps=0, n_episodes=100, image_folder='recorded_images'):
+def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
+                         n_episodes=100, image_folder='recorded_images'):
     """
     Train expert controller (if needed) and record expert trajectories.
 
