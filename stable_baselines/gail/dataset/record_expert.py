@@ -32,6 +32,8 @@ def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
     # Retrieve the environment using the RL model
     if env is None and isinstance(model, BaseRLModel):
         env = model.get_env()
+        if env.num_envs > 1:
+            warnings.warn("You are using multiple envs, only the data from the first one will be recorded.")
 
     assert env is not None, "You must set the env in the model or pass it to the function."
 
