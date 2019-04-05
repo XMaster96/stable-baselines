@@ -114,11 +114,14 @@ def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
 
         # Use only first env
         if is_vec_env:
+            if isinstance(reward, float):
+                mask = [reward for _ in range(env.num_envs)]
 
-            mask = [reward[0] for _ in range(env.num_envs)]
-            action = np.array([action[0]])
-            reward = np.array([reward[0]])
-            done = np.array([done[0]])
+            else:
+                mask = [reward[0] for _ in range(env.num_envs)]
+                action = np.array([action[0]])
+                reward = np.array([reward[0]])
+                done = np.array([done[0]])
 
         actions.append(action)
         rewards.append(reward)
@@ -126,11 +129,7 @@ def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
         reward_sum += reward
         idx += 1
         if done:
-
-            if is_vec_env:
-                if env.num_envs == 1:
-                    obs = env.reset()
-            else:
+            if not is_vec_env:
                 obs = env.reset()
 
             episode_returns[ep_idx] = reward_sum
