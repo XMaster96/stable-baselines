@@ -104,7 +104,7 @@ def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
             observations.append(obs)
 
         if isinstance(model, BaseRLModel):
-            action, _ = model.predict(obs, state=state)
+            action, state = model.predict(obs, state=state)
         else:
             action = model(obs)
 
