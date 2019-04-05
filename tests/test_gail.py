@@ -38,60 +38,31 @@ def test_gail(expert_env):
             obs = env.reset()
     del dataset, model
 
-#pendulum single env support lerner single env
-def test_generate_t0():
-    model = SAC('MlpPolicy', 'Pendulum-v0', verbose=0)
-    generate_expert_traj(model, 'expert_pendulum', n_timesteps=1000, n_episodes=10,
-                         image_folder='test_recorded_images')
+@pytest.mark.parametrize("generate_env", [(SAC, 'MlpPolicy', 'Pendulum-v0', 1),
+                                            (DQN, 'MlpPolicy', 'CartPole-v1', 1),
+                                            (A2C, 'MlpPolicy', 'Pendulum-v0', 1),
+                                            (ACER, 'MlpPolicy', 'CartPole-v1', 1),
+                                            (PPO2, 'CnnPolicy', 'BreakoutNoFrameskip-v4', 1),
+                                            (A2C, 'MlpLstmPolicy', 'Pendulum-v0', 1),
+                                            (ACER, 'MlpLstmPolicy', 'CartPole-v1', 1),
+                                            (PPO2, 'CnnLstmPolicy', 'BreakoutNoFrameskip-v4', 1),
+                                            (A2C, 'CnnPolicy', 'BreakoutNoFrameskip-v4', 8),
+                                            (PPO2, 'CnnLstmPolicy', 'BreakoutNoFrameskip-v4', 8)])
 
-#cartpole single env support lerner single env
-def test_generate_t1():
-    model = DQN('MlpPolicy', 'CartPole-v1', verbose=0)
-    generate_expert_traj(model, 'expert_cartpole', n_timesteps=1000, n_episodes=10,
-                         image_folder='test_recorded_images')
+def test_generate(generate_env):
+    model, policy, env_name, n_env = generate_env
 
-#pendulum multi env support lerner single env
-def test_generate_t2():
-    model = A2C('MlpPolicy', 'Pendulum-v0', verbose=0)
-    generate_expert_traj(model, 'expert_pendulum', n_timesteps=1000, n_episodes=10,
-                         image_folder='test_recorded_images')
+    if n_env > 1:
+        env = make_atari_env(env_name, num_env=n_env, seed=0)
+        model = model(policy, env, verbose=0)
+    else:
+        try:
+            model = model(policy, env_name, verbose=0, nminibatches=1)
+        except TypeError:
+            model = model(policy, env_name, verbose=0)
 
-#cartpole multi env support lerner single env
-def test_generate_t3():
-    model = ACER('MlpPolicy', 'CartPole-v1', verbose=0)
-    generate_expert_traj(model, 'expert_cartpole', n_timesteps=1000, n_episodes=10,
-                         image_folder='test_recorded_images')
-
-#brackout multi env support lerner single env
-def test_generate_t4():
-    model = PPO2('CnnPolicy', 'BreakoutNoFrameskip-v4', verbose=0)
-    generate_expert_traj(model, 'expert_breakout', n_timesteps=1000, n_episodes=10,
-                         image_folder='test_recorded_images')
-
-#pendulum multi env support lerner single env LSTM
-def test_generate_t5():
-    model = A2C('MlpLstmPolicy', 'Pendulum-v0', verbose=0)
-    generate_expert_traj(model, 'expert_pendulum', n_timesteps=1000, n_episodes=10,
-                         image_folder='test_recorded_images')
-
-#cartpole multi env support lerner single env LST
-def test_generate_t6():
-    model = ACER('MlpLstmPolicy', 'CartPole-v1', verbose=0)
-    generate_expert_traj(model, 'expert_cartpole', n_timesteps=1000, n_episodes=10,
-                         image_folder='test_recorded_images')
-
-#brackout multi env support lerner single env LSTM
-def test_generate_t7():
-    model = PPO2('CnnLstmPolicy', 'BreakoutNoFrameskip-v4', verbose=0, nminibatches=1)
-    generate_expert_traj(model, 'expert_breakout', n_timesteps=1000, n_episodes=10,
-                         image_folder='test_recorded_images')
-
-#brackout multi env support lerner mulit env LSTM
-def test_generate_t8():
-    env = make_atari_env('BreakoutNoFrameskip-v4', num_env=8, seed=0)
-    model = PPO2('CnnLstmPolicy', env, verbose=0)
-    generate_expert_traj(model, 'expert_breakout', n_timesteps=1000, n_episodes=100,
-                         image_folder='test_recorded_images')
+    generate_expert_traj(model, 'expert', n_timesteps=1000, n_episodes=50,
+                             image_folder='test_recorded_images')
 
 
 def test_generate_callable():
