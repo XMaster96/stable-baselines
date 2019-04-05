@@ -61,7 +61,7 @@ def test_generate(generate_env):
         except TypeError:
             model = model(policy, env_name, verbose=0)
 
-    generate_expert_traj(model, 'expert', n_timesteps=1000, n_episodes=50,
+    generate_expert_traj(model, 'expert', n_timesteps=1000, n_episodes=25,
                              image_folder='test_recorded_images')
 
 
