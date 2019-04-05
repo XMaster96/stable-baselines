@@ -39,14 +39,42 @@ def test_gail(expert_env):
     del dataset, model
 
 
-def test_generate_pendulum():
+def test_generate_pendulum_single_env_support_lerner_single_env():
     model = SAC('MlpPolicy', 'Pendulum-v0', verbose=0)
-    generate_expert_traj(model, 'expert_pendulum', n_timesteps=1000, n_episodes=10)
+    generate_expert_traj(model, 'expert_pendulum', n_timesteps=1000, n_episodes=10, image_folder='test_recorded_images')
 
-
-def test_generate_cartpole():
+def test_generate_cartpole_single_env_support_lerner_single_env():
     model = DQN('MlpPolicy', 'CartPole-v1', verbose=0)
-    generate_expert_traj(model, 'expert_cartpole', n_timesteps=1000, n_episodes=10)
+    generate_expert_traj(model, 'expert_cartpole', n_timesteps=1000, n_episodes=10, image_folder='test_recorded_images')
+
+def test_generate_pendulum_multi_env_support_lerner_single_env():
+    model = A2C('MlpPolicy', 'Pendulum-v0', verbose=0)
+    generate_expert_traj(model, 'expert_pendulum', n_timesteps=1000, n_episodes=10, image_folder='test_recorded_images')
+
+def test_generate_cartpole_multi_env_support_lerner_single_env():
+    model = ACER('MlpPolicy', 'CartPole-v1', verbose=0)
+    generate_expert_traj(model, 'expert_cartpole', n_timesteps=1000, n_episodes=10, image_folder='test_recorded_images')
+
+def test_generate_brackout_multi_env_support_lerner_single_env():
+    model = PPO2('CnnPolicy', 'BreakoutNoFrameskip-v4', verbose=0)
+    generate_expert_traj(model, 'expert_breakout', n_timesteps=1000, n_episodes=10, image_folder='test_recorded_images')
+
+def test_generate_pendulum_multi_env_support_lerner_single_env_LSTM():
+    model = A2C('MlpLstmPolicy', 'Pendulum-v0', verbose=0)
+    generate_expert_traj(model, 'expert_pendulum', n_timesteps=1000, n_episodes=10, image_folder='test_recorded_images')
+
+def test_generate_cartpole_multi_env_support_lerner_single_env_LSTM():
+    model = ACER('MlpLstmPolicy', 'CartPole-v1', verbose=0)
+    generate_expert_traj(model, 'expert_cartpole', n_timesteps=1000, n_episodes=10, image_folder='test_recorded_images')
+
+def test_generate_brackout_multi_env_support_lerner_single_env_LSTM():
+    model = PPO2('CnnLstmPolicy', 'BreakoutNoFrameskip-v4', verbose=0, nminibatches=1)
+    generate_expert_traj(model, 'expert_breakout', n_timesteps=1000, n_episodes=10, image_folder='test_recorded_images')
+
+def test_generate_brackout_multi_env_support_lerner_mulit_env_LSTM():
+    env = make_atari_env('BreakoutNoFrameskip-v4', num_env=8, seed=0)
+    model = PPO2('CnnLstmPolicy', env, verbose=0)
+    generate_expert_traj(model, 'expert_breakout', n_timesteps=1000, n_episodes=100, image_folder='test_recorded_images')
 
 
 def test_generate_callable():
