@@ -38,30 +38,24 @@ def test_gail(expert_env):
             obs = env.reset()
     del dataset, model
 
-@pytest.mark.parametrize("generate_env", [(SAC, 'MlpPolicy', 'Pendulum-v0', 1),
-                                            (DQN, 'MlpPolicy', 'CartPole-v1', 1),
-                                            (A2C, 'MlpPolicy', 'Pendulum-v0', 1),
-                                            (ACER, 'MlpPolicy', 'CartPole-v1', 1),
-                                            (PPO2, 'CnnPolicy', 'BreakoutNoFrameskip-v4', 1),
-                                            (A2C, 'MlpLstmPolicy', 'Pendulum-v0', 1),
-                                            (ACER, 'MlpLstmPolicy', 'CartPole-v1', 1),
-                                            (PPO2, 'CnnLstmPolicy', 'BreakoutNoFrameskip-v4', 1),
-                                            (A2C, 'CnnPolicy', 'BreakoutNoFrameskip-v4', 8),
-                                            (PPO2, 'CnnLstmPolicy', 'BreakoutNoFrameskip-v4', 8)])
+@pytest.mark.parametrize("generate_env", [
+                                            (SAC, 'MlpPolicy', 'Pendulum-v0', 1, 10),
+                                            (DQN, 'MlpPolicy', 'CartPole-v1', 1, 10),
+                                            (A2C, 'MlpLstmPolicy', 'Pendulum-v0', 1, 10),
+                                            (A2C, 'MlpLstmPolicy', 'CartPole-v1', 1, 10),
+                                            (A2C, 'CnnPolicy', 'BreakoutNoFrameskip-v4', 8, 1),
+                                          ])
 
 def test_generate(generate_env):
-    model, policy, env_name, n_env = generate_env
+    model, policy, env_name, n_env, n_episodes = generate_env
 
     if n_env > 1:
         env = make_atari_env(env_name, num_env=n_env, seed=0)
         model = model(policy, env, verbose=0)
     else:
-        try:
-            model = model(policy, env_name, verbose=0, nminibatches=1)
-        except TypeError:
-            model = model(policy, env_name, verbose=0)
+        model = model(policy, env_name, verbose=0)
 
-    generate_expert_traj(model, 'expert', n_timesteps=1000, n_episodes=15,
+    generate_expert_traj(model, 'expert', n_timesteps=1000, n_episodes=n_episodes,
                              image_folder='test_recorded_images')
 
 
