@@ -89,6 +89,10 @@ def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
     reward_sum = 0.0
     idx = 0
     state = None
+    mask = None
+
+    if is_vec_env:
+        mask = [True for _ in range(env.num_envs)]
 
     while ep_idx < n_episodes:
         if record_images:
@@ -104,7 +108,7 @@ def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
             observations.append(obs)
 
         if isinstance(model, BaseRLModel):
-            action, state = model.predict(obs, state=state)
+            action, state = model.predict(obs, state=state, mask=mask)
         else:
             action = model(obs)
 
@@ -116,6 +120,10 @@ def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
                 action = np.array([action[0]])
                 reward = np.array([reward[0]])
                 done = np.array([done[0]])
+
+        # Set mask with the done value.
+        if is_vec_env:
+            mask = [done for _ in range(env.num_envs)]
 
         actions.append(action)
         rewards.append(reward)
@@ -129,7 +137,6 @@ def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
             episode_returns[ep_idx] = reward_sum
             reward_sum = 0.0
             ep_idx += 1
-            state = None
 
     if isinstance(env.observation_space, spaces.Box) and not record_images:
         observations = np.concatenate(observations).reshape((-1,) + env.observation_space.shape)
