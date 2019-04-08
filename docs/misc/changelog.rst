@@ -10,6 +10,8 @@ Pre-Release 2.5.1a0 (WIP)
 
 - doc update (fix example of result plotter + improve doc)
 - fixed logger issues when stdout lacks ``read`` function
+- added support for multi env recording to ``generate_expert_traj`` (@XMaster96)
+- added support for LSTM model recording to ``generate_expert_traj`` (@XMaster96)
 
 
 Release 2.5.0 (2019-03-28)
@@ -272,3 +274,4 @@ In random order...
 
 Thanks to @bjmuld @iambenzo @iandanforth @r7vme @brendenpetersen @huvar @abhiskk @JohannesAck
 @EliasHasle @mrakgr @Bleyddyn @antoine-galataud @junhyeokahn @AdamGleave @keshaviyengar @tperol
+@XMaster96
