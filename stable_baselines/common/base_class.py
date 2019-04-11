@@ -43,6 +43,10 @@ class BaseRLModel(ABC):
         self.graph = None
         self.sess = None
         self.params = None
+        self.initial_state = None
+        self.n_batch = None
+        self.nminibatches = None
+        self.n_steps = None
 
         if env is not None:
             if isinstance(env, str):
@@ -196,13 +200,23 @@ class BaseRLModel(ABC):
             else:
                 val_interval = int(n_epochs / 10)
 
+        if self.initial_state is None:
+            use_lstm =  False
+        else:
+            use_lstm = True
+
+        batch_size = self.n_batch // self.nminibatches
+        envs_per_batch = batch_size // self.n_steps
+
         with self.graph.as_default():
             with tf.variable_scope('pretrain'):
                 if continuous_actions:
-                    obs_ph, actions_ph, deterministic_actions_ph = self._get_pretrain_placeholders()
+                    obs_ph, actions_ph, states_ph, snew_ph, masks_ph, \
+                    deterministic_actions_ph = self._get_pretrain_placeholders()
                     loss = tf.reduce_mean(tf.square(actions_ph - deterministic_actions_ph))
                 else:
-                    obs_ph, actions_ph, actions_logits_ph = self._get_pretrain_placeholders()
+                    obs_ph, actions_ph, states_ph, snew_ph, masks_ph, \
+                    actions_logits_ph = self._get_pretrain_placeholders()
                     # actions_ph has a shape if (n_batch,), we reshape it to (n_batch, 1)
                     # so no additional changes is needed in the dataloader
                     actions_ph = tf.expand_dims(actions_ph, axis=1)
@@ -222,13 +236,22 @@ class BaseRLModel(ABC):
 
         for epoch_idx in range(int(n_epochs)):
             train_loss = 0.0
+            state = self.initial_state[:envs_per_batch]
+
             # Full pass on the training set
             for _ in range(len(dataset.train_loader)):
-                expert_obs, expert_actions = dataset.get_next_batch('train')
+                expert_obs, expert_actions, expert_mask = dataset.get_next_batch('train')
                 feed_dict = {
                     obs_ph: expert_obs,
                     actions_ph: expert_actions,
                 }
+
+                if use_lstm:
+                    feed_dict.update({states_ph: state, masks_ph: expert_mask})
+                    state, train_loss_, _ = self.sess.run([snew_ph, loss, optim_op], feed_dict)
+                else:
+                    train_loss_, _ = self.sess.run([loss, optim_op], feed_dict)
+
                 train_loss_, _ = self.sess.run([loss, optim_op], feed_dict)
                 train_loss += train_loss_
 
@@ -238,9 +261,19 @@ class BaseRLModel(ABC):
                 val_loss = 0.0
                 # Full pass on the validation set
                 for _ in range(len(dataset.val_loader)):
-                    expert_obs, expert_actions = dataset.get_next_batch('val')
-                    val_loss_, = self.sess.run([loss], {obs_ph: expert_obs,
-                                                        actions_ph: expert_actions})
+                    expert_obs, expert_actions, expert_mask = dataset.get_next_batch('val')
+
+                    feed_dict = {
+                        obs_ph: expert_obs,
+                        actions_ph: expert_actions,
+                    }
+
+                    if use_lstm:
+                        feed_dict.update({states_ph: state, masks_ph: expert_mask})
+                        val_loss_, = self.sess.run([loss], feed_dict)
+                    else:
+                        val_loss_, = self.sess.run([loss], feed_dict)
+
                     val_loss += val_loss_
 
                 val_loss /= len(dataset.val_loader)
