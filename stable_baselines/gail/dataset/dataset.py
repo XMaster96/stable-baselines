@@ -5,6 +5,7 @@ from multiprocessing import Queue, Process
 import cv2
 import numpy as np
 from joblib import Parallel, delayed
+from itertools import cycle, islice
 import matplotlib.pyplot as plt
 
 from stable_baselines import logger
@@ -32,12 +33,22 @@ class ExpertDataset(object):
 
     def __init__(self, expert_path, train_fraction=0.7, batch_size=64,
                  traj_limitation=-1, randomize=True, verbose=1,
-                 sequential_preprocessing=False):
+                 sequential_preprocessing=False, LSTM=False,
+                 nminibatches=4, n_envs=4):
+
         traj_data = np.load(expert_path)
 
         if verbose > 0:
             for key, val in traj_data.items():
                 print(key, val.shape)
+
+        if LSTM:
+            n_batch = n_envs * batch_size
+            _batch_size = n_batch // nminibatches
+            envs_per_batch = _batch_size // batch_size
+            use_batch_size = batch_size * envs_per_batch
+        else:
+            use_batch_size = batch_size
 
         # Array of bool where episode_starts[i] = True for each new episode
         episode_starts = traj_data['episode_starts']
@@ -55,6 +66,15 @@ class ExpertDataset(object):
 
         observations = traj_data['obs'][:traj_limit_idx]
         actions = traj_data['actions'][:traj_limit_idx]
+        mask = episode_starts[:traj_limit_idx]
+
+        start_index_list = []
+        if LSTM:
+            for idx, episode_start in enumerate(mask):
+                if episode_start:
+                    start_index_list.append(idx)
+
+            start_index_list += [traj_limit_idx]
 
         # obs, actions: shape (N * L, ) + S
         # where N = # episodes, L = episode length
@@ -65,12 +85,52 @@ class ExpertDataset(object):
             observations = np.reshape(observations, [-1, np.prod(observations.shape[1:])])
         if len(actions.shape) > 2:
             actions = np.reshape(actions, [-1, np.prod(actions.shape[1:])])
+        if len(mask.shape) > 2:
+            mask = np.reshape(mask, [-1, np.prod(mask.shape[1:])])
 
-        indices = np.random.permutation(len(observations)).astype(np.int64)
+        if LSTM:
+            indices = np.arange(start=0, stop=len(observations)).astype(np.int64)
+            split_indices = [indices[start_index_list[i]:start_index_list[i+1]].tolist() for i in range(0, len(start_index_list)-1)]
 
-        # Train/Validation split when using behavior cloning
-        train_indices = indices[:int(train_fraction * len(indices))]
-        val_indices = indices[int(train_fraction * len(indices)):]
+            ignor = len(split_indices) % envs_per_batch
+            if ignor > 0:
+                split_indices = split_indices[:-ignor]
+
+            len_list = [len(s_i) for s_i in split_indices]
+
+            print(len(len_list), envs_per_batch)
+            assert len(len_list) >= envs_per_batch*2, "Not enough saved episodes for this number of workers and nminibatches."
+
+            sort_buffer = np.argsort(len_list)
+            stackt_indices = [[] for i in range(envs_per_batch)]
+
+            for i in range(0, len(sort_buffer), envs_per_batch):
+                for idx, k in enumerate(range(i, i + envs_per_batch)):
+                    stackt_indices[idx] += split_indices[sort_buffer[k]]
+
+            max_len = max([len(i) for i in stackt_indices])
+            mod_max_len = max_len % batch_size
+            final_stack_len = max_len + (batch_size - mod_max_len)
+
+            indices = [list(islice(cycle(i), None, final_stack_len)) for i in stackt_indices]
+            indices = np.array(indices).flatten()
+
+            del split_indices, len_list, sort_buffer, stackt_indices, max_len, mod_max_len, final_stack_len
+
+            # Train/Validation split when using behavior cloning
+            split_point = int(train_fraction * len(indices))
+            split_point = split_point - (split_point % batch_size)
+
+            train_indices = indices[:split_point]
+            val_indices = indices[split_point:]
+
+        else:
+
+            indices = np.random.permutation(len(observations)).astype(np.int64)
+
+            # Train/Validation split when using behavior cloning
+            train_indices = indices[:int(train_fraction * len(indices))]
+            val_indices = indices[int(train_fraction * len(indices)):]
 
         assert len(train_indices) > 0, "No sample for the training set"
         assert len(val_indices) > 0, "No sample for the validation set"
@@ -91,10 +151,10 @@ class ExpertDataset(object):
         self.sequential_preprocessing = sequential_preprocessing
 
         self.dataloader = None
-        self.train_loader = DataLoader(train_indices, self.observations, self.actions, batch_size,
+        self.train_loader = DataLoader(train_indices, self.observations, self.actions, use_batch_size,
                                        shuffle=self.randomize, start_process=False,
                                        sequential=sequential_preprocessing)
-        self.val_loader = DataLoader(val_indices, self.observations, self.actions, batch_size,
+        self.val_loader = DataLoader(val_indices, self.observations, self.actions, use_batch_size,
                                      shuffle=self.randomize, start_process=False,
                                      sequential=sequential_preprocessing)
 
@@ -185,7 +245,7 @@ class DataLoader(object):
         lesser than the batch_size)
     """
 
-    def __init__(self, indices, observations, actions, batch_size, n_workers=1,
+    def __init__(self, indices, observations, actions, mask, batch_size, n_workers=1,
                  infinite_loop=True, max_queue_len=1, shuffle=False,
                  start_process=True, backend='threading', sequential=False, partial_minibatch=True):
         super(DataLoader, self).__init__()
@@ -201,6 +261,7 @@ class DataLoader(object):
         self.batch_size = batch_size
         self.observations = observations
         self.actions = actions
+        self.mask = mask
         self.shuffle = shuffle
         self.queue = Queue(max_queue_len)
         self.process = None
@@ -249,8 +310,10 @@ class DataLoader(object):
                                  axis=0)
 
         actions = self.actions[self._minibatch_indices]
+        mask = self.mask[self._minibatch_indices]
         self.start_idx += self.batch_size
-        return obs, actions
+
+        return obs, actions, mask
 
     def _run(self):
         start = True
@@ -278,8 +341,9 @@ class DataLoader(object):
                         obs = np.concatenate(obs, axis=0)
 
                     actions = self.actions[self._minibatch_indices]
+                    mask = self.mask[self._minibatch_indices]
 
-                    self.queue.put((obs, actions))
+                    self.queue.put((obs, actions, mask))
 
                     # Free memory
                     del obs
