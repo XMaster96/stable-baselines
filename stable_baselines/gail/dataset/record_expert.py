@@ -7,6 +7,7 @@ from gym import spaces
 
 from stable_baselines.common.base_class import BaseRLModel
 from stable_baselines.common.vec_env import VecEnv, VecFrameStack
+from stable_baselines.common.base_class import _UnvecWrapper
 
 
 def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
@@ -36,7 +37,7 @@ def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
     assert env is not None, "You must set the env in the model or pass it to the function."
 
     is_vec_env = False
-    if isinstance(env, VecEnv):
+    if isinstance(env, VecEnv) and not isinstance(env, _UnvecWrapper):
         is_vec_env = True
         if env.num_envs > 1:
             warnings.warn("You are using multiple envs, only the data from the first one will be recorded.")
@@ -116,13 +117,10 @@ def generate_expert_traj(model, save_path, env=None, n_timesteps=0,
 
         # Use only first env
         if is_vec_env:
-            if isinstance(reward, float):
-                mask = [done for _ in range(env.num_envs)]
-            else:
-                mask = [done[0] for _ in range(env.num_envs)]
-                action = np.array([action[0]])
-                reward = np.array([reward[0]])
-                done = np.array([done[0]])
+            mask = [done[0] for _ in range(env.num_envs)]
+            action = np.array([action[0]])
+            reward = np.array([reward[0]])
+            done = np.array([done[0]])
 
         actions.append(action)
         rewards.append(reward)
