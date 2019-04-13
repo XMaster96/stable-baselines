@@ -90,35 +90,39 @@ class ExpertDataset(object):
             mask = np.reshape(mask, [-1, np.prod(mask.shape[1:])])
 
         if LSTM:
+
+            # Creat indices list and split them per episode.
             indices = np.arange(start=0, stop=len(observations)).astype(np.int64)
             split_indices = [indices[start_index_list[i]:start_index_list[i+1]].tolist() for i in range(0, len(start_index_list)-1)]
 
-            ignor = len(split_indices) % envs_per_batch
-            if ignor > 0:
-                split_indices = split_indices[:-ignor]
-
+            # Create list with episode lengths.
             len_list = [len(s_i) for s_i in split_indices]
 
-            print(len(len_list), envs_per_batch)
-            assert len(len_list) >= envs_per_batch*2, "Not enough saved episodes for this number of workers and nminibatches."
+            assert len(len_list) >= envs_per_batch, "Not enough saved episodes for this number of workers and nminibatches."
 
+            # Sort episode pos by lengths.
             sort_buffer = np.argsort(len_list).tolist()[::-1]
-            stackt_indices = []
+
+            # Creat stack list and pre fill then with the longest episodes.
+            stack_indices = []
             for i in range(envs_per_batch):
-                stackt_indices.append([split_indices[sort_buffer[0]]])
+                stack_indices.append([split_indices[sort_buffer[0]]])
                 sort_buffer.pop(0)
 
+            # Add next episode to the smallest stack.
             for s_b in sort_buffer:
-                currend_stackt_indices_len = [len(st_i) for st_i in stackt_indices]
+                currend_stackt_indices_len = [len(st_i) for st_i in stack_indices]
                 smalest_stackt_indices_pos = np.argmin(currend_stackt_indices_len)
-                stackt_indices[smalest_stackt_indices_pos] += split_indices[s_b]
+                stack_indices[smalest_stackt_indices_pos] += split_indices[s_b]
 
-            pre_cycle_len = [len(st_i) for st_i in stackt_indices]
+            # Creat info varibelts used for data cycle.
+            pre_cycle_len = [len(st_i) for st_i in stack_indices]
             max_len = max(pre_cycle_len)
             min_len = min(pre_cycle_len)
             mod_max_len = max_len % batch_size
             final_stack_len = max_len + (batch_size - mod_max_len)
 
+            # Calculate split point for Train/Validation split.
             split_point = int(train_fraction * final_stack_len * envs_per_batch)
             split_point = split_point - (split_point % batch_size)
 
@@ -126,11 +130,17 @@ class ExpertDataset(object):
                 warnings.warn('The Episode are divide to unequal, your validation set will '
                               'get polluted with training data.')
 
-            indices = [list(islice(cycle(st_i), None, final_stack_len)) for st_i in stackt_indices]
+            # Cycle to it self to creat enough data to split it to batch_size length.
+            indices = [list(islice(cycle(st_i), None, final_stack_len)) for st_i in stack_indices]
+
+            # Put the cycled data to the beginning to not affect the validation set.
             indices = [indices[i][pre_cycle_len[i]:] + indices[i][:pre_cycle_len[i]] for i in range(len(pre_cycle_len))]
+
+            # Flatten the stack list to a single list.
             indices = np.array(indices).flatten()
 
-            del split_indices, len_list, sort_buffer, stackt_indices, max_len, mod_max_len, final_stack_len
+            # Free memory
+            del split_indices, len_list, sort_buffer, stack_indices, max_len, mod_max_len, final_stack_len
 
             # Train/Validation split when using behavior cloning
             train_indices = indices[:split_point]
@@ -149,6 +159,7 @@ class ExpertDataset(object):
 
         self.observations = observations
         self.actions = actions
+        self.mask = mask
 
         self.returns = traj_data['episode_returns'][:traj_limit_idx]
         self.avg_ret = sum(self.returns) / len(self.returns)
@@ -163,10 +174,10 @@ class ExpertDataset(object):
         self.sequential_preprocessing = sequential_preprocessing
 
         self.dataloader = None
-        self.train_loader = DataLoader(train_indices, self.observations, self.actions, use_batch_size,
+        self.train_loader = DataLoader(train_indices, self.observations, self.actions, self.mask, use_batch_size,
                                        shuffle=self.randomize, start_process=False,
                                        sequential=sequential_preprocessing)
-        self.val_loader = DataLoader(val_indices, self.observations, self.actions, use_batch_size,
+        self.val_loader = DataLoader(val_indices, self.observations, self.actions, self.mask, use_batch_size,
                                      shuffle=self.randomize, start_process=False,
                                      sequential=sequential_preprocessing)
 
@@ -180,7 +191,7 @@ class ExpertDataset(object):
         :param batch_size: (int)
         """
         indices = np.random.permutation(len(self.observations)).astype(np.int64)
-        self.dataloader = DataLoader(indices, self.observations, self.actions, batch_size,
+        self.dataloader = DataLoader(indices, self.observations, self.actions, self.mask, batch_size,
                                      shuffle=self.randomize, start_process=False,
                                      sequential=self.sequential_preprocessing)
 
