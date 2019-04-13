@@ -427,7 +427,7 @@ class TRPO(ActorCriticRLModel):
                         for ob_batch, ac_batch in dataset.iterbatches((observation, action),
                                                                       include_final_partial_batch=False,
                                                                       batch_size=batch_size):
-                            ob_expert, ac_expert = self.expert_dataset.get_next_batch()
+                            ob_expert, ac_expert, _ = self.expert_dataset.get_next_batch()
                             # update running mean/std for reward_giver
                             if self.reward_giver.normalize:
                                 self.reward_giver.obs_rms.update(np.concatenate((ob_batch, ob_expert), 0))
