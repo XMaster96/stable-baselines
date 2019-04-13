@@ -104,8 +104,18 @@ class ACKTR(ActorCriticRLModel):
 
     def _get_pretrain_placeholders(self):
         policy = self.train_model
+
+        if self.initial_state is None:
+            states_ph = None
+            snew_ph = None
+            masks_ph = None
+        else:
+            states_ph = policy.states_ph
+            snew_ph = policy.snew
+            masks_ph = policy.masks_ph
+
         if isinstance(self.action_space, Discrete):
-            return policy.obs_ph, self.action_ph, policy.policy
+            return policy.obs_ph, self.action_ph, states_ph, snew_ph, masks_ph, policy.policy
         raise NotImplementedError("WIP: ACKTR does not support Continuous actions yet.")
 
     def setup_model(self):

@@ -201,7 +201,7 @@ class BaseRLModel(ABC):
                 val_interval = int(n_epochs / 10)
 
         if self.initial_state is None:
-            use_lstm =  False
+            use_lstm = False
         else:
             use_lstm = True
 

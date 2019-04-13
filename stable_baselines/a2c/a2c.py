@@ -87,9 +87,19 @@ class A2C(ActorCriticRLModel):
 
     def _get_pretrain_placeholders(self):
         policy = self.train_model
+
+        if self.initial_state is None:
+            states_ph = None
+            snew_ph = None
+            masks_ph = None
+        else:
+            states_ph = policy.states_ph
+            snew_ph = policy.snew
+            masks_ph = policy.masks_ph
+
         if isinstance(self.action_space, gym.spaces.Discrete):
-            return policy.obs_ph, self.actions_ph, policy.policy
-        return policy.obs_ph, self.actions_ph, policy.deterministic_action
+            return policy.obs_ph, self.actions_ph, states_ph, snew_ph, masks_ph, policy.policy
+        return policy.obs_ph, self.actions_ph, states_ph, snew_ph, masks_ph, policy.deterministic_action
 
     def setup_model(self):
         with SetVerbosity(self.verbose):
