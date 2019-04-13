@@ -14,6 +14,9 @@ Pre-Release 2.5.1a0 (WIP)
 - added support for LSTM model recording to ``generate_expert_traj`` (@XMaster96)
 - added ``get_attr()``, ``env_method()`` and ``set_attr()`` methods for all VecEnv. Those
   methods now all accept ``indices`` keyword to select a subset of envs. 
+- ``GAIL``: remove mandatory matplotlib dependency and refactor as subclass of ``TRPO`` (@kantneel and @AdamGleave)
+- added ``get_attr()``, ``env_method()`` and ``set_attr()`` methods for all VecEnv. 
+  Those methods now all accept ``indices`` keyword to select a subset of envs.
   ``set_attr`` now returns ``None`` rather than a list of ``None``. (@kantneel)
 
 
