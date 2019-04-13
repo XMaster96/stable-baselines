@@ -1,5 +1,6 @@
 import queue
 import time
+import warnings
 from multiprocessing import Queue, Process
 
 import cv2
@@ -101,26 +102,37 @@ class ExpertDataset(object):
             print(len(len_list), envs_per_batch)
             assert len(len_list) >= envs_per_batch*2, "Not enough saved episodes for this number of workers and nminibatches."
 
-            sort_buffer = np.argsort(len_list)
-            stackt_indices = [[] for i in range(envs_per_batch)]
+            sort_buffer = np.argsort(len_list).tolist()[::-1]
+            stackt_indices = []
+            for i in range(envs_per_batch):
+                stackt_indices.append([split_indices[sort_buffer[0]]])
+                sort_buffer.pop(0)
 
-            for i in range(0, len(sort_buffer), envs_per_batch):
-                for idx, k in enumerate(range(i, i + envs_per_batch)):
-                    stackt_indices[idx] += split_indices[sort_buffer[k]]
+            for s_b in sort_buffer:
+                currend_stackt_indices_len = [len(st_i) for st_i in stackt_indices]
+                smalest_stackt_indices_pos = np.argmin(currend_stackt_indices_len)
+                stackt_indices[smalest_stackt_indices_pos] += split_indices[s_b]
 
-            max_len = max([len(i) for i in stackt_indices])
+            pre_cycle_len = [len(st_i) for st_i in stackt_indices]
+            max_len = max(pre_cycle_len)
+            min_len = min(pre_cycle_len)
             mod_max_len = max_len % batch_size
             final_stack_len = max_len + (batch_size - mod_max_len)
 
-            indices = [list(islice(cycle(i), None, final_stack_len)) for i in stackt_indices]
+            split_point = int(train_fraction * final_stack_len * envs_per_batch)
+            split_point = split_point - (split_point % batch_size)
+
+            if mod_max_len > (min_len - (final_stack_len * envs_per_batch - split_point)):
+                warnings.warn('The Episode are divide to unequal, your validation set will '
+                              'get polluted with training data.')
+
+            indices = [list(islice(cycle(st_i), None, final_stack_len)) for st_i in stackt_indices]
+            indices = [indices[i][pre_cycle_len[i]:] + indices[i][:pre_cycle_len[i]] for i in range(len(pre_cycle_len))]
             indices = np.array(indices).flatten()
 
             del split_indices, len_list, sort_buffer, stackt_indices, max_len, mod_max_len, final_stack_len
 
             # Train/Validation split when using behavior cloning
-            split_point = int(train_fraction * len(indices))
-            split_point = split_point - (split_point % batch_size)
-
             train_indices = indices[:split_point]
             val_indices = indices[split_point:]
 
