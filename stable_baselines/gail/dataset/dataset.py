@@ -7,7 +7,6 @@ import cv2
 import numpy as np
 from joblib import Parallel, delayed
 from itertools import cycle, islice
-import matplotlib.pyplot as plt
 
 from stable_baselines import logger
 
@@ -94,12 +93,15 @@ class ExpertDataset(object):
 
             # Creat indices list and split them per episode.
             indices = np.arange(start=0, stop=len(observations)).astype(np.int64)
-            split_indices = [indices[start_index_list[i]:start_index_list[i+1]].tolist() for i in range(0, len(start_index_list)-1)]
+            split_indices = [indices[start_index_list[i]:start_index_list[i+1]]\
+                                 .tolist() for i in range(0, len(start_index_list)-1)]
 
             # Create list with episode lengths.
             len_list = [len(s_i) for s_i in split_indices]
 
-            assert len(len_list) >= envs_per_batch, "Not enough saved episodes for this number of workers and nminibatches."
+            assert len(len_list) >= envs_per_batch, "Not enough saved " \
+                                                    "episodes for this number " \
+                                                    "of workers and nminibatches."
 
             # Sort episode pos by lengths.
             sort_buffer = np.argsort(len_list).tolist()[::-1]
