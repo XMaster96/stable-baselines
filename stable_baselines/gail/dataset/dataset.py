@@ -46,8 +46,6 @@ class ExpertDataset(object):
         if traj_data is None:
             traj_data = np.load(expert_path)
 
-        traj_data = np.load(expert_path)
-
         if verbose > 0:
             for key, val in traj_data.items():
                 print(key, val.shape)

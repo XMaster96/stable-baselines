@@ -200,10 +200,7 @@ class BaseRLModel(ABC):
             else:
                 val_interval = int(n_epochs / 10)
 
-        if self.initial_state is None:
-            use_lstm = False
-        else:
-            use_lstm = True
+        use_lstm = self.initial_state is not None
 
         if use_lstm:
             if self.nminibatches is None:
@@ -215,11 +212,11 @@ class BaseRLModel(ABC):
         with self.graph.as_default():
             with tf.variable_scope('pretrain'):
                 if continuous_actions:
-                    obs_ph, actions_ph, states_ph, snew_ph, masks_ph, \
+                    obs_ph, actions_ph, states_ph, snew_ph, dones_ph, \
                     deterministic_actions_ph = self._get_pretrain_placeholders()
                     loss = tf.reduce_mean(tf.square(actions_ph - deterministic_actions_ph))
                 else:
-                    obs_ph, actions_ph, states_ph, snew_ph, masks_ph, \
+                    obs_ph, actions_ph, states_ph, snew_ph, dones_ph, \
                     actions_logits_ph = self._get_pretrain_placeholders()
                     # actions_ph has a shape if (n_batch,), we reshape it to (n_batch, 1)
                     # so no additional changes is needed in the dataloader
@@ -252,7 +249,7 @@ class BaseRLModel(ABC):
                 }
 
                 if use_lstm:
-                    feed_dict.update({states_ph: state, masks_ph: expert_mask})
+                    feed_dict.update({states_ph: state, dones_ph: expert_mask})
                     state, train_loss_, _ = self.sess.run([snew_ph, loss, optim_op], feed_dict)
                 else:
                     train_loss_, _ = self.sess.run([loss, optim_op], feed_dict)
@@ -274,7 +271,7 @@ class BaseRLModel(ABC):
                     }
 
                     if use_lstm:
-                        feed_dict.update({states_ph: state, masks_ph: expert_mask})
+                        feed_dict.update({states_ph: state, dones_ph: expert_mask})
                         val_loss_, = self.sess.run([loss], feed_dict)
                     else:
                         val_loss_, = self.sess.run([loss], feed_dict)

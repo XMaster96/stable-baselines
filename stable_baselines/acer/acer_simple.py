@@ -156,14 +156,14 @@ class ACER(ActorCriticRLModel):
         if self.initial_state is None:
             states_ph = None
             snew_ph = None
-            masks_ph = None
+            dones_ph = None
         else:
             states_ph = policy.states_ph
             snew_ph = policy.snew
-            masks_ph = policy.masks_ph
+            dones_ph = policy.dones_ph
 
         if isinstance(self.action_space, Discrete):
-            return policy.obs_ph, action_ph, states_ph, snew_ph, masks_ph, policy.policy
+            return policy.obs_ph, action_ph, states_ph, snew_ph, dones_ph, policy.policy
         raise NotImplementedError('Only discrete actions are supported for ACER for now')
 
     def set_env(self, env):

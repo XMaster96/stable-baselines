@@ -125,8 +125,7 @@ def test_pretrain_images():
                                               [PPO2, 1, False, "MlpPolicy", "Pendulum-v0", EXPERT_PATH_PENDULUM, 32, 1],
                                               [TRPO, 1, False, "MlpPolicy", "Pendulum-v0", EXPERT_PATH_PENDULUM, 32, 1]])
 
-def test_behavior_cloning_discrete(model_class_data):
-
+def test_behavior_cloning(model_class_data):
 
     model_class, num_env, lstm, policy, game, load_data, batch_size, envs_per_batch = model_class_data
     dataset = ExpertDataset(expert_path=load_data, traj_limitation=3,
