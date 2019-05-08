@@ -26,7 +26,7 @@ class TRPO(ActorCriticRLModel):
     :param env: (Gym environment or str) The environment to learn from (if registered in Gym, can be str)
     :param gamma: (float) the discount value
     :param timesteps_per_batch: (int) the number of timesteps to run per batch (horizon)
-    :param max_kl: (float) the kullback leiber loss threshold
+    :param max_kl: (float) the Kullback-Leibler loss threshold
     :param cg_iters: (int) the number of iterations for the conjugate gradient calculation
     :param lam: (float) GAE factor
     :param entcoeff: (float) the weight for the entropy loss
@@ -147,7 +147,7 @@ class TRPO(ActorCriticRLModel):
                     meanent = tf.reduce_mean(ent)
                     entbonus = self.entcoeff * meanent
 
-                    vferr = tf.reduce_mean(tf.square(self.policy_pi.value_fn[:, 0] - ret))
+                    vferr = tf.reduce_mean(tf.square(self.policy_pi.value_flat - ret))
 
                     # advantage * pnew / pold
                     ratio = tf.exp(self.policy_pi.proba_distribution.logp(action) -
@@ -183,7 +183,7 @@ class TRPO(ActorCriticRLModel):
                     tf.summary.scalar('entropy_loss', meanent)
                     tf.summary.scalar('policy_gradient_loss', optimgain)
                     tf.summary.scalar('value_function_loss', surrgain)
-                    tf.summary.scalar('approximate_kullback-leiber', meankl)
+                    tf.summary.scalar('approximate_kullback-leibler', meankl)
                     tf.summary.scalar('loss', optimgain + meankl + entbonus + surrgain + meanent)
 
                     self.assign_old_eq_new = \
@@ -403,9 +403,11 @@ class TRPO(ActorCriticRLModel):
 
                         with self.timed("vf"):
                             for _ in range(self.vf_iters):
+                                # NOTE: for recurrent policies, use shuffle=False?
                                 for (mbob, mbret) in dataset.iterbatches((seg["ob"], seg["tdlamret"]),
                                                                          include_final_partial_batch=False,
-                                                                         batch_size=128):
+                                                                         batch_size=128,
+                                                                         shuffle=True):
                                     grad = self.allmean(self.compute_vflossandgrad(mbob, mbob, mbret, sess=self.sess))
                                     self.vfadam.update(grad, self.vf_stepsize)
 
@@ -424,9 +426,11 @@ class TRPO(ActorCriticRLModel):
 
                         # NOTE: uses only the last g step for observation
                         d_losses = []  # list of tuples, each of which gives the loss for a minibatch
+                        # NOTE: for recurrent policies, use shuffle=False?
                         for ob_batch, ac_batch in dataset.iterbatches((observation, action),
                                                                       include_final_partial_batch=False,
-                                                                      batch_size=batch_size):
+                                                                      batch_size=batch_size,
+                                                                      shuffle=True):
                             ob_expert, ac_expert = self.expert_dataset.get_next_batch()
                             # update running mean/std for reward_giver
                             if self.reward_giver.normalize:
