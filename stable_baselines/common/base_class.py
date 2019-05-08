@@ -205,8 +205,12 @@ class BaseRLModel(ABC):
         else:
             use_lstm = True
 
-        batch_size = self.n_batch // self.nminibatches
-        envs_per_batch = batch_size // self.n_steps
+        if use_lstm:
+            if self.nminibatches is None:
+                envs_per_batch = self.n_envs * self.n_steps
+            else:
+                batch_size = self.n_batch // self.nminibatches
+                envs_per_batch = batch_size // self.n_steps
 
         with self.graph.as_default():
             with tf.variable_scope('pretrain'):
@@ -236,7 +240,8 @@ class BaseRLModel(ABC):
 
         for epoch_idx in range(int(n_epochs)):
             train_loss = 0.0
-            state = self.initial_state[:envs_per_batch]
+            if use_lstm:
+                state = self.initial_state[:envs_per_batch]
 
             # Full pass on the training set
             for _ in range(len(dataset.train_loader)):

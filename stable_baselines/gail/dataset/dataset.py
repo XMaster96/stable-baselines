@@ -34,8 +34,7 @@ class ExpertDataset(object):
 
     def __init__(self, expert_path, train_fraction=0.7, batch_size=64,
                  traj_limitation=-1, randomize=True, verbose=1,
-                 sequential_preprocessing=False, LSTM=False,
-                 nminibatches=4, n_envs=4):
+                 sequential_preprocessing=False, LSTM=False, envs_per_batch=1):
 
         traj_data = np.load(expert_path)
 
@@ -43,13 +42,7 @@ class ExpertDataset(object):
             for key, val in traj_data.items():
                 print(key, val.shape)
 
-        if LSTM:
-            n_batch = n_envs * batch_size
-            _batch_size = n_batch // nminibatches
-            envs_per_batch = _batch_size // batch_size
-            use_batch_size = batch_size * envs_per_batch
-        else:
-            use_batch_size = batch_size
+        use_batch_size = batch_size * envs_per_batch
 
         # Array of bool where episode_starts[i] = True for each new episode
         episode_starts = traj_data['episode_starts']
@@ -106,7 +99,7 @@ class ExpertDataset(object):
             # Creat stack list and pre fill then with the longest episodes.
             stack_indices = []
             for i in range(envs_per_batch):
-                stack_indices.append([split_indices[sort_buffer[0]]])
+                stack_indices.append(split_indices[sort_buffer[0]])
                 sort_buffer.pop(0)
 
             # Add next episode to the smallest stack.
@@ -124,9 +117,9 @@ class ExpertDataset(object):
 
             # Calculate split point for Train/Validation split.
             split_point = int(train_fraction * final_stack_len * envs_per_batch)
-            split_point = split_point - (split_point % batch_size)
+            split_point = split_point - (split_point % use_batch_size)
 
-            if mod_max_len > (min_len - (final_stack_len * envs_per_batch - split_point)):
+            if mod_max_len > (min_len - (final_stack_len * envs_per_batch - split_point)) > 0:
                 warnings.warn('The Episode are divide to unequal, your validation set will '
                               'get polluted with training data.')
 
@@ -137,7 +130,7 @@ class ExpertDataset(object):
             indices = [indices[i][pre_cycle_len[i]:] + indices[i][:pre_cycle_len[i]] for i in range(len(pre_cycle_len))]
 
             # Flatten the stack list to a single list.
-            indices = np.array(indices).flatten()
+            indices = np.array(indices).flatten('F')
 
             # Free memory
             del split_indices, len_list, sort_buffer, stack_indices, max_len, mod_max_len, final_stack_len
@@ -146,6 +139,9 @@ class ExpertDataset(object):
             train_indices = indices[:split_point]
             val_indices = indices[split_point:]
 
+            # Set randomize.
+            self.randomize = False
+
         else:
 
             indices = np.random.permutation(len(observations)).astype(np.int64)
@@ -153,6 +149,9 @@ class ExpertDataset(object):
             # Train/Validation split when using behavior cloning
             train_indices = indices[:int(train_fraction * len(indices))]
             val_indices = indices[int(train_fraction * len(indices)):]
+
+            # Set randomize.
+            self.randomize = randomize
 
         assert len(train_indices) > 0, "No sample for the training set"
         assert len(val_indices) > 0, "No sample for the validation set"
@@ -170,7 +169,6 @@ class ExpertDataset(object):
                                                             "please check your expert dataset"
         self.num_traj = min(traj_limitation, np.sum(episode_starts))
         self.num_transition = len(self.observations)
-        self.randomize = randomize
         self.sequential_preprocessing = sequential_preprocessing
 
         self.dataloader = None
@@ -319,7 +317,7 @@ class DataLoader(object):
         """
         Sequential version of the pre-processing.
         """
-        if self.start_idx > len(self.indices):
+        if self.start_idx >= len(self.indices):
             raise StopIteration
 
         if self.start_idx == 0:
