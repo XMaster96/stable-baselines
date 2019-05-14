@@ -49,6 +49,7 @@ class ExpertDataset(object):
             for key, val in traj_data.items():
                 print(key, val.shape)
 
+        envs_per_batch = int(envs_per_batch)
         use_batch_size = batch_size * envs_per_batch
 
         # Array of bool where episode_starts[i] = True for each new episode
@@ -184,10 +185,10 @@ class ExpertDataset(object):
         self.dataloader = None
         self.train_loader = DataLoader(train_indices, self.observations, self.actions, self.mask, use_batch_size,
                                        shuffle=self.randomize, start_process=False,
-                                       sequential=sequential_preprocessing)
+                                       sequential=sequential_preprocessing, partial_minibatch=not LSTM)
         self.val_loader = DataLoader(val_indices, self.observations, self.actions, self.mask, use_batch_size,
                                      shuffle=self.randomize, start_process=False,
-                                     sequential=sequential_preprocessing)
+                                     sequential=sequential_preprocessing, partial_minibatch=not LSTM)
 
         if self.verbose >= 1:
             self.log_info()
