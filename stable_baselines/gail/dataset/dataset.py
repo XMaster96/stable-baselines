@@ -144,11 +144,11 @@ class ExpertDataset(object):
             # Flatten the stack cycle list to a single list.
             indices = []
             for i in range(0, len(cycle_indices[0]), batch_size):
-                for k in range(len(cycle_indices)):
-                    indices += cycle_indices[k][i:i+batch_size]
+                for c_i in cycle_indices:
+                    indices += c_i[i:i+batch_size]
 
             # Free memory
-            del split_indices, len_list, sort_buffer, stack_indices, max_len, mod_max_len, final_stack_len
+            del split_indices, len_list, sort_buffer, stack_indices, max_len, mod_max_len, final_stack_len, cycle_indices
 
             # Train/Validation split when using behavior cloning
             train_indices = indices[:split_point]
