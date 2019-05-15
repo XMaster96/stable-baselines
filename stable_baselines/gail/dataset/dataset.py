@@ -148,7 +148,8 @@ class ExpertDataset(object):
                     indices += c_i[i:i+batch_size]
 
             # Free memory
-            del split_indices, len_list, sort_buffer, stack_indices, max_len, mod_max_len, final_stack_len, cycle_indices
+            del split_indices, len_list, sort_buffer, stack_indices, max_len, mod_max_len, final_stack_len,\
+                cycle_indices
 
             # Train/Validation split when using behavior cloning
             train_indices = indices[:split_point]
