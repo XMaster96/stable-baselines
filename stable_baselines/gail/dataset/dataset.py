@@ -135,13 +135,16 @@ class ExpertDataset(object):
                               'get polluted with training data.')
 
             # Cycle to it self to creat enough data to split it to batch_size length.
-            indices = [list(islice(cycle(st_i), None, final_stack_len)) for st_i in stack_indices]
+            cycle_indices = [list(islice(cycle(st_i), None, final_stack_len)) for st_i in stack_indices]
 
             # Put the cycled data to the beginning to not affect the validation set.
-            indices = [indices[i][pre_cycle_len[i]:] + indices[i][:pre_cycle_len[i]] for i in range(len(pre_cycle_len))]
+            cycle_indices = [cycle_indices[i][pre_cycle_len[i]:] + cycle_indices[i][:pre_cycle_len[i]] for i in range(len(pre_cycle_len))]
 
-            # Flatten the stack list to a single list.
-            indices = np.array(indices).flatten('F')
+            # Flatten the stack cycle list to a single list.
+            indices = []
+            for i in range(0, len(cycle_indices[0]), batch_size):
+                for k in range(len(cycle_indices)):
+                    indices += cycle_indices[k][i:i+batch_size]
 
             # Free memory
             del split_indices, len_list, sort_buffer, stack_indices, max_len, mod_max_len, final_stack_len
