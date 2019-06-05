@@ -13,27 +13,31 @@ notebooks:
 -  `Monitor Training and Plotting`_
 -  `Atari Games`_
 -  `Breakout`_ (trained agent included)
+-  `Hindsight Experience Replay`_
+-  `RL Baselines zoo`_
 
 .. _Getting Started: https://colab.research.google.com/drive/1_1H5bjWKYBVKbbs-Kj83dsfuZieDNcFU
-.. _Training, Saving, Loading: https://colab.research.google.com/drive/1KoAQ1C_BNtGV3sVvZCnNZaER9rstmy0s
+.. _Training, Saving, Loading: https://colab.research.google.com/drive/16QritJF5kgT3mtnODepld1fo5tFnFCoc
 .. _Multiprocessing: https://colab.research.google.com/drive/1ZzNFMUUi923foaVsYb4YjPy4mjKtnOxb
 .. _Monitor Training and Plotting: https://colab.research.google.com/drive/1L_IMo6v0a0ALK8nefZm6PqPSy0vZIWBT
 .. _Atari Games: https://colab.research.google.com/drive/1iYK11yDzOOqnrXi1Sfjm1iekZr4cxLaN
 .. _Breakout: https://colab.research.google.com/drive/14NwwEHwN4hdNgGzzySjxQhEVDff-zr7O
+.. _Hindsight Experience Replay: https://colab.research.google.com/drive/1VDD0uLi8wjUXIqAdLKiK15XaEe0z2FOc
+.. _RL Baselines zoo: https://colab.research.google.com/drive/1cPGK3XrCqEs3QLqiijsfib9OFht3kObX
 
 .. |colab| image:: ../_static/img/colab.svg
 
 Basic Usage: Training, Saving, Loading
 --------------------------------------
 
-In the following example, we will train, save and load an A2C model on the Lunar Lander environment.
+In the following example, we will train, save and load a DQN model on the Lunar Lander environment.
 
 .. image:: ../_static/img/try_it.png
    :scale: 30 %
-   :target: https://colab.research.google.com/drive/1KoAQ1C_BNtGV3sVvZCnNZaER9rstmy0s
+   :target: https://colab.research.google.com/drive/16QritJF5kgT3mtnODepld1fo5tFnFCoc
 
 
-.. figure:: https://cdn-images-1.medium.com/max/960/1*W7X69nxINgZEcJEAyoHCVw.gif
+.. figure:: https://cdn-images-1.medium.com/max/960/1*f4VZPKOI0PYNWiwt0la0Rg.gif
 
   Lunar Lander Environment
 
@@ -42,29 +46,30 @@ In the following example, we will train, save and load an A2C model on the Lunar
   LunarLander requires the python package `box2d`.
   You can install it using ``apt install swig`` and then ``pip install box2d box2d-kengz``
 
+.. note::
+  ``load`` function re-creates model from scratch on each call, which can be slow.
+  If you need to e.g. evaluate same model with multiple different sets of parameters, consider
+  using ``load_parameters`` instead.
+  
 .. code-block:: python
 
   import gym
 
-  from stable_baselines.common.policies import MlpPolicy
-  from stable_baselines.common.vec_env import DummyVecEnv
-  from stable_baselines import A2C
+  from stable_baselines import DQN
 
-  # Create and wrap the environment
+  # Create environment
   env = gym.make('LunarLander-v2')
-  env = DummyVecEnv([lambda: env])
 
-  # Alternatively, you can directly use:
-  # model = A2C('MlpPolicy', 'LunarLander-v2', ent_coef=0.1, verbose=1)
-  model = A2C(MlpPolicy, env, ent_coef=0.1, verbose=1)
+  # Instantiate the agent
+  model = DQN('MlpPolicy', env, learning_rate=1e-3, prioritized_replay=True, verbose=1)
   # Train the agent
-  model.learn(total_timesteps=100000)
+  model.learn(total_timesteps=int(2e5))
   # Save the agent
-  model.save("a2c_lunar")
+  model.save("dqn_lunar")
   del model  # delete trained model to demonstrate loading
 
   # Load the trained agent
-  model = A2C.load("a2c_lunar")
+  model = DQN.load("dqn_lunar")
 
   # Enjoy trained agent
   obs = env.reset()
@@ -152,12 +157,11 @@ If your callback returns False, training is aborted early.
   import numpy as np
   import matplotlib.pyplot as plt
 
-  from stable_baselines.ddpg.policies import MlpPolicy
-  from stable_baselines.common.vec_env.dummy_vec_env import DummyVecEnv
+  from stable_baselines.ddpg.policies import LnMlpPolicy
   from stable_baselines.bench import Monitor
   from stable_baselines.results_plotter import load_results, ts2xy
   from stable_baselines import DDPG
-  from stable_baselines.ddpg.noise import AdaptiveParamNoiseSpec
+  from stable_baselines.ddpg import AdaptiveParamNoiseSpec
 
 
   best_mean_reward, n_steps = -np.inf, 0
@@ -171,7 +175,7 @@ If your callback returns False, training is aborted early.
     global n_steps, best_mean_reward
     # Print stats every 1000 calls
     if (n_steps + 1) % 1000 == 0:
-        # Evaluate policy performance
+        # Evaluate policy training performance
         x, y = ts2xy(load_results(log_dir), 'timesteps')
         if len(x) > 0:
             mean_reward = np.mean(y[-100:])
@@ -195,13 +199,14 @@ If your callback returns False, training is aborted early.
   # Create and wrap the environment
   env = gym.make('LunarLanderContinuous-v2')
   env = Monitor(env, log_dir, allow_early_resets=True)
-  env = DummyVecEnv([lambda: env])
 
   # Add some param noise for exploration
-  param_noise = AdaptiveParamNoiseSpec(initial_stddev=0.2, desired_action_stddev=0.2)
-  model = DDPG(MlpPolicy, env, param_noise=param_noise, memory_limit=int(1e6), verbose=0)
+  param_noise = AdaptiveParamNoiseSpec(initial_stddev=0.1, desired_action_stddev=0.1)
+  # Because we use parameter noise, we should use a MlpPolicy with layer normalization
+  model = DDPG(LnMlpPolicy, env, param_noise=param_noise, verbose=0)
   # Train the agent
-  model.learn(total_timesteps=200000, callback=callback)
+  model.learn(total_timesteps=int(1e5), callback=callback)
+
 
 Atari Games
 -----------
@@ -309,6 +314,90 @@ However, you can also easily define a custom architecture for the policy network
   model.learn(total_timesteps=100000)
 
 
+Accessing and modifying model parameters
+----------------------------------------
+
+You can access model's parameters via ``load_parameters`` and ``get_parameters`` functions, which
+use dictionaries that map variable names to NumPy arrays. 
+
+These functions are useful when you need to e.g. evaluate large set of models with same network structure,
+visualize different layers of the network or modify parameters manually.
+
+You can access original Tensorflow Variables with function ``get_parameter_list``.
+
+Following example demonstrates reading parameters, modifying some of them and loading them to model
+by implementing `evolution strategy <http://blog.otoro.net/2017/10/29/visual-evolution-strategies/>`_ 
+for solving ``CartPole-v1`` environment. The initial guess for parameters is obtained by running
+A2C policy gradient updates on the model.
+
+.. code-block:: python
+
+  import gym
+  import numpy as np
+
+  from stable_baselines.common.policies import MlpPolicy
+  from stable_baselines.common.vec_env import DummyVecEnv
+  from stable_baselines import A2C
+
+  def mutate(params):
+      """Mutate parameters by adding normal noise to them"""
+      return dict((name, param + np.random.normal(size=param.shape))
+                  for name, param in params.items())
+
+  def evaluate(env, model):
+      """Return mean fitness (sum of episodic rewards) for given model"""
+      episode_rewards = []
+      for _ in range(10):
+          reward_sum = 0
+          done = False
+          obs = env.reset()
+          while not done:
+              action, _states = model.predict(obs)
+              obs, reward, done, info = env.step(action)
+              reward_sum += reward
+          episode_rewards.append(reward_sum)
+      return np.mean(episode_rewards)
+
+  # Create env
+  env = gym.make('CartPole-v1')
+  env = DummyVecEnv([lambda: env])
+  # Create policy with a small network
+  model = A2C(MlpPolicy, env, ent_coef=0.0, learning_rate=0.1,
+              policy_kwargs={'net_arch': [8, ]})
+
+  # Use traditional actor-critic policy gradient updates to
+  # find good initial parameters
+  model.learn(total_timesteps=5000)
+
+  # Get the parameters as the starting point for ES
+  mean_params = model.get_parameters()
+
+  # Include only variables with "/pi/" (policy) or "/shared" (shared layers)
+  # in their name: Only these ones affect the action.
+  mean_params = dict((key, value) for key, value in mean_params.items()
+                     if ("/pi/" in key or "/shared" in key))
+
+  for iteration in range(10):
+      # Create population of candidates and evaluate them
+      population = []
+      for population_i in range(100):
+          candidate = mutate(mean_params)
+          # Load new policy parameters to agent.
+          # Tell function that it should only update parameters
+          # we give it (policy parameters)
+          model.load_parameters(candidate, exact_match=False)
+          fitness = evaluate(env, model)
+          population.append((candidate, fitness))
+      # Take top 10% and use average over their parameters as next mean parameter
+      top_candidates = sorted(population, key=lambda x: x[1], reverse=True)[:10]
+      mean_params = dict(
+          (name, np.stack([top_candidate[0][name] for top_candidate in top_candidates]).mean(0))
+          for name in mean_params.keys()
+      )
+      mean_fitness = sum(top_candidate[1] for top_candidate in top_candidates) / 10.0
+      print("Iteration {:<3} Mean top fitness: {:.2f}".format(iteration, mean_fitness))
+
+
 Recurrent Policies
 ------------------
 
@@ -347,6 +436,84 @@ This example demonstrate how to train a recurrent policy and how to test it prop
 
       # Show the env
       env.render()
+
+
+Hindsight Experience Replay (HER)
+---------------------------------
+
+For this example, we are using `Highway-Env <https://github.com/eleurent/highway-env>`_ by `@eleurent <https://github.com/eleurent>`_.
+
+
+.. image:: ../_static/img/try_it.png
+   :scale: 30 %
+   :target: https://colab.research.google.com/drive/1VDD0uLi8wjUXIqAdLKiK15XaEe0z2FOc
+
+
+.. figure:: https://raw.githubusercontent.com/eleurent/highway-env/gh-media/docs/media/parking-env.gif
+
+   The highway-parking-v0 environment.
+
+The parking env is a goal-conditioned continuous control task, in which the vehicle must park in a given space with the appropriate heading.
+
+.. note::
+
+	the hyperparameters in the following example were optimized for that environment.
+
+
+.. code-block:: python
+
+  import gym
+  import highway_env
+  import numpy as np
+
+  from stable_baselines import HER, SAC, DDPG
+  from stable_baselines.ddpg import NormalActionNoise
+
+  env = gym.make("parking-v0")
+
+  # Create 4 artificial transitions per real transition
+  n_sampled_goal = 4
+
+  # SAC hyperparams:
+  model = HER('MlpPolicy', env, SAC, n_sampled_goal=n_sampled_goal,
+              goal_selection_strategy='future',
+              verbose=1, buffer_size=int(1e6),
+              learning_rate=1e-3,
+              gamma=0.95, batch_size=256,
+              policy_kwargs=dict(layers=[256, 256, 256]))
+
+  # DDPG Hyperparams:
+  # NOTE: it works even without action noise
+  # n_actions = env.action_space.shape[0]
+  # noise_std = 0.2
+  # action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=noise_std * np.ones(n_actions))
+  # model = HER('MlpPolicy', env, DDPG, n_sampled_goal=n_sampled_goal,
+  #             goal_selection_strategy='future',
+  #             verbose=1, buffer_size=int(1e6),
+  #             actor_lr=1e-3, critic_lr=1e-3, action_noise=action_noise,
+  #             gamma=0.95, batch_size=256,
+  #             policy_kwargs=dict(layers=[256, 256, 256]))
+
+
+  model.learn(int(2e5))
+  model.save('her_sac_highway')
+
+  # Load saved model
+  model = HER.load('her_sac_highway', env=env)
+
+  obs = env.reset()
+
+  # Evaluate the agent
+  episode_reward = 0
+  for _ in range(100):
+  	action, _ = model.predict(obs)
+  	obs, reward, done, info = env.step(action)
+  	env.render()
+  	episode_reward += reward
+  	if done or info.get('is_success', False):
+  		print("Reward:", episode_reward, "Success?", info.get('is_success', False))
+  		episode_reward = 0.0
+  		obs = env.reset()
 
 
 
