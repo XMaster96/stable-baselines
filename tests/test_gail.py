@@ -7,7 +7,7 @@ import pytest
 from stable_baselines import A2C, ACER, ACKTR, GAIL, DQN, PPO1, PPO2, TRPO, SAC
 from stable_baselines.common.cmd_util import make_atari_env
 from stable_baselines.common.vec_env import VecFrameStack, DummyVecEnv
-from stable_baselines.gail import ExpertDataset, generate_expert_traj
+from stable_baselines.gail import ExpertDataset, ExpertDatasetLSTM, generate_expert_traj
 
 EXPERT_PATH_PENDULUM = "stable_baselines/gail/dataset/expert_pendulum.npz"
 EXPERT_PATH_DISCRETE = "stable_baselines/gail/dataset/expert_cartpole.npz"
@@ -147,9 +147,15 @@ def test_pretrain_images():
 def test_behavior_cloning(model_class_data):
 
     model_class, num_env, lstm, policy, game, load_data, batch_size, envs_per_batch = model_class_data
-    dataset = ExpertDataset(expert_path=load_data, traj_limitation=3,
-                            sequential_preprocessing=True, verbose=0, LSTM=lstm,
-                            batch_size=batch_size, envs_per_batch=envs_per_batch)
+
+    if lstm:
+        dataset = ExpertDatasetLSTM(expert_path=load_data, traj_limitation=3,
+                                sequential_preprocessing=True, verbose=0,
+                                batch_size=batch_size, envs_per_batch=envs_per_batch)
+    else:
+        dataset = ExpertDataset(expert_path=load_data, traj_limitation=3,
+                                sequential_preprocessing=True, verbose=0,
+                                batch_size=batch_size)
 
     env = DummyVecEnv([lambda: gym.make(game) for i in range(num_env)])
 
