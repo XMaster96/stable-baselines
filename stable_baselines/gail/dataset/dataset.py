@@ -113,8 +113,6 @@ class ExpertDataset(Dataset):
         actions = traj_data['actions'][:traj_limit_idx]
         mask = episode_starts[:traj_limit_idx]
 
-        start_index_list = []
-
         # obs, actions: shape (N * L, ) + S
         # where N = # episodes, L = episode length
         # and S is the environment observation/action space.
