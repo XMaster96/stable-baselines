@@ -10,7 +10,7 @@ from stable_baselines.common.vec_env import VecEnv
 from stable_baselines.common.schedules import LinearSchedule
 from stable_baselines.deepq.replay_buffer import ReplayBuffer, PrioritizedReplayBuffer
 from stable_baselines.deepq.policies import DQNPolicy
-from stable_baselines.a2c.utils import find_trainable_variables, total_episode_reward_logger
+from stable_baselines.a2c.utils import total_episode_reward_logger
 
 
 class DQN(OffPolicyRLModel):
@@ -134,7 +134,7 @@ class DQN(OffPolicyRLModel):
                     full_tensorboard_log=self.full_tensorboard_log
                 )
                 self.proba_step = self.step_model.proba_step
-                self.params = find_trainable_variables("deepq")
+                self.params = tf_util.get_trainable_vars("deepq")
 
                 # Initialize the parameters and copy them to the target network.
                 tf_util.initialize(self.sess)
@@ -143,7 +143,7 @@ class DQN(OffPolicyRLModel):
                 self.summary = tf.summary.merge_all()
 
     def learn(self, total_timesteps, callback=None, seed=None, log_interval=100, tb_log_name="DQN",
-              reset_num_timesteps=True):
+              reset_num_timesteps=True, replay_wrapper=None):
 
         new_tb_log = self._init_num_timesteps(reset_num_timesteps)
 
@@ -164,12 +164,19 @@ class DQN(OffPolicyRLModel):
             else:
                 self.replay_buffer = ReplayBuffer(self.buffer_size)
                 self.beta_schedule = None
+
+            if replay_wrapper is not None:
+                assert not self.prioritized_replay, "Prioritized replay buffer is not supported by HER"
+                self.replay_buffer = replay_wrapper(self.replay_buffer)
+
+
             # Create the schedule for exploration starting from 1.
             self.exploration = LinearSchedule(schedule_timesteps=int(self.exploration_fraction * total_timesteps),
                                               initial_p=1.0,
                                               final_p=self.exploration_final_eps)
 
             episode_rewards = [0.0]
+            episode_successes = []
             obs = self.env.reset()
             reset = True
             self.episode_reward = np.zeros((1,))
@@ -201,7 +208,7 @@ class DQN(OffPolicyRLModel):
                     action = self.act(np.array(obs)[None], update_eps=update_eps, **kwargs)[0]
                 env_action = action
                 reset = False
-                new_obs, rew, done, _ = self.env.step(env_action)
+                new_obs, rew, done, info = self.env.step(env_action)
                 # Store transition in the replay buffer.
                 self.replay_buffer.add(obs, action, rew, new_obs, float(done))
                 obs = new_obs
@@ -214,12 +221,19 @@ class DQN(OffPolicyRLModel):
 
                 episode_rewards[-1] += rew
                 if done:
+                    maybe_is_success = info.get('is_success')
+                    if maybe_is_success is not None:
+                        episode_successes.append(float(maybe_is_success))
                     if not isinstance(self.env, VecEnv):
                         obs = self.env.reset()
                     episode_rewards.append(0.0)
                     reset = True
 
-                if self.num_timesteps > self.learning_starts and self.num_timesteps % self.train_freq == 0:
+                # Do not train if the warmup phase is not over
+                # or if there are not enough samples in the replay buffer
+                can_sample = self.replay_buffer.can_sample(self.batch_size)
+                if can_sample and self.num_timesteps > self.learning_starts \
+                    and self.num_timesteps % self.train_freq == 0:
                     # Minimize the error in Bellman's equation on a batch sampled from replay buffer.
                     if self.prioritized_replay:
                         experience = self.replay_buffer.sample(self.batch_size,
@@ -251,7 +265,7 @@ class DQN(OffPolicyRLModel):
                         new_priorities = np.abs(td_errors) + self.prioritized_replay_eps
                         self.replay_buffer.update_priorities(batch_idxes, new_priorities)
 
-                if self.num_timesteps > self.learning_starts and \
+                if can_sample and self.num_timesteps > self.learning_starts and \
                         self.num_timesteps % self.target_network_update_freq == 0:
                     # Update target network periodically.
                     self.update_target(sess=self.sess)
@@ -265,6 +279,8 @@ class DQN(OffPolicyRLModel):
                 if self.verbose >= 1 and done and log_interval is not None and len(episode_rewards) % log_interval == 0:
                     logger.record_tabular("steps", self.num_timesteps)
                     logger.record_tabular("episodes", num_episodes)
+                    if len(episode_successes) > 0:
+                        logger.logkv("success rate", np.mean(episode_successes[-100:]))
                     logger.record_tabular("mean 100 episode reward", mean_100ep_reward)
                     logger.record_tabular("% time spent exploring",
                                           int(100 * self.exploration.value(self.num_timesteps)))
@@ -287,7 +303,7 @@ class DQN(OffPolicyRLModel):
 
         return actions, None
 
-    def action_probability(self, observation, state=None, mask=None, actions=None):
+    def action_probability(self, observation, state=None, mask=None, actions=None, logp=False):
         observation = np.array(observation)
         vectorized_env = self._is_vectorized_observation(observation, self.observation_space)
 
@@ -302,6 +318,8 @@ class DQN(OffPolicyRLModel):
             actions_proba = actions_proba[np.arange(actions.shape[0]), actions]
             # normalize action proba shape
             actions_proba = actions_proba.reshape((-1, 1))
+            if logp:
+                actions_proba = np.log(actions_proba)
 
         if not vectorized_env:
             if state is not None:
@@ -309,6 +327,9 @@ class DQN(OffPolicyRLModel):
             actions_proba = actions_proba[0]
 
         return actions_proba
+
+    def get_parameter_list(self):
+        return self.params
 
     def save(self, save_path):
         # params
@@ -338,9 +359,9 @@ class DQN(OffPolicyRLModel):
             "policy_kwargs": self.policy_kwargs
         }
 
-        params = self.sess.run(self.params)
+        params_to_save = self.get_parameters()
 
-        self._save_to_file(save_path, data=data, params=params)
+        self._save_to_file(save_path, data=data, params=params_to_save)
 
     @classmethod
     def load(cls, load_path, env=None, **kwargs):
@@ -357,9 +378,6 @@ class DQN(OffPolicyRLModel):
         model.set_env(env)
         model.setup_model()
 
-        restores = []
-        for param, loaded_p in zip(model.params, params):
-            restores.append(param.assign(loaded_p))
-        model.sess.run(restores)
+        model.load_parameters(params)
 
         return model

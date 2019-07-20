@@ -14,7 +14,7 @@ from stable_baselines import logger
 from stable_baselines.common.mpi_adam import MpiAdam
 from stable_baselines.common.cg import conjugate_gradient
 from stable_baselines.common.policies import ActorCriticPolicy
-from stable_baselines.a2c.utils import find_trainable_variables, total_episode_reward_logger
+from stable_baselines.a2c.utils import total_episode_reward_logger
 from stable_baselines.trpo_mpi.utils import traj_segment_generator, add_vtarg_and_adv, flatten_lists
 
 
@@ -250,7 +250,7 @@ class TRPO(ActorCriticRLModel):
                 self.proba_step = self.policy_pi.proba_step
                 self.initial_state = self.policy_pi.initial_state
 
-                self.params = find_trainable_variables("model")
+                self.params = tf_util.get_trainable_vars("model") + tf_util.get_trainable_vars("oldpi")
                 if self.using_gail:
                     self.params.extend(self.reward_giver.get_trainable_variables())
 
@@ -323,19 +323,24 @@ class TRPO(ActorCriticRLModel):
                             seg = seg_gen.__next__()
                         add_vtarg_and_adv(seg, self.gamma, self.lam)
                         # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
-                        observation, action, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
+                        observation, action = seg["observations"], seg["actions"]
+                        atarg, tdlamret = seg["adv"], seg["tdlamret"]
+
+
                         vpredbefore = seg["vpred"]  # predicted value function before update
                         atarg = (atarg - atarg.mean()) / atarg.std()  # standardized advantage function estimate
 
                         # true_rew is the reward without discount
                         if writer is not None:
                             self.episode_reward = total_episode_reward_logger(self.episode_reward,
-                                                                              seg["true_rew"].reshape(
+                                                                              seg["true_rewards"].reshape(
                                                                                   (self.n_envs, -1)),
                                                                               seg["dones"].reshape((self.n_envs, -1)),
                                                                               writer, self.num_timesteps)
 
-                        args = seg["ob"], seg["ob"], seg["ac"], atarg
+                        args = seg["observations"], seg["observations"], seg["actions"], atarg
+                        # Subsampling: see p40-42 of John Schulman thesis
+                        # http://joschu.net/docs/thesis.pdf
                         fvpargs = [arr[::5] for arr in args]
 
                         self.assign_old_eq_new(sess=self.sess)
@@ -404,7 +409,7 @@ class TRPO(ActorCriticRLModel):
                         with self.timed("vf"):
                             for _ in range(self.vf_iters):
                                 # NOTE: for recurrent policies, use shuffle=False?
-                                for (mbob, mbret) in dataset.iterbatches((seg["ob"], seg["tdlamret"]),
+                                for (mbob, mbret) in dataset.iterbatches((seg["observations"], seg["tdlamret"]),
                                                                          include_final_partial_batch=False,
                                                                          batch_size=128,
                                                                          shuffle=True):
@@ -511,6 +516,6 @@ class TRPO(ActorCriticRLModel):
             "policy_kwargs": self.policy_kwargs
         }
 
-        params = self.sess.run(self.params)
+        params_to_save = self.get_parameters()
 
-        self._save_to_file(save_path, data=data, params=params)
+        self._save_to_file(save_path, data=data, params=params_to_save)

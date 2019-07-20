@@ -90,3 +90,26 @@ Project around Roboy, a tendon-driven robot, that enabled it to move its shoulde
 | Video: https://tinyurl.com/DeepRoboyControlVideo
 | Blog post: https://tinyurl.com/mediumDRC
 | Website: https://roboy.org/
+
+Train a ROS-integrated mobile robot (differential drive) to avoid dynamic objects
+---------------------------------------------------------------------------------
+
+The RL-agent serves as local planner and is trained in a simulator, fusion of the Flatland Simulator and the crowd simulator Pedsim. This was tested on a real mobile robot.
+The Proximal Policy Optimization (PPO) algorithm is applied.
+
+| Author: Ronja Güldenring
+| Email: 6guelden@informatik.uni-hamburg.de
+| Video: https://www.youtube.com/watch?v=laGrLaMaeT4
+| GitHub: https://github.com/RGring/drl_local_planner_ros_stable_baselines
+
+Adversarial Policies: Attacking Deep Reinforcement Learning
+-----------------------------------------------------------
+
+Uses Stable Baselines to train *adversarial policies* that attack pre-trained victim policies in a zero-sum multi-agent environments.
+May be useful as an example of how to integrate Stable Baselines with `Ray <https://github.com/ray-project/ray>`_ to perform distributed experiments and `Sacred <https://github.com/IDSIA/sacred>`_ for experiment configuration and monitoring.
+
+| Authors: Adam Gleave, Michael Dennis, Neel Kant, Cody Wild
+| Email: adam@gleave.me
+| GitHub: https://github.com/HumanCompatibleAI/adversarial-policies
+| Paper: https://arxiv.org/abs/1905.10615
+| Website: https://adversarialpolicies.github.io

@@ -7,7 +7,10 @@ from stable_baselines.common.vec_env.util import copy_obs_dict, dict_to_obs, obs
 
 class DummyVecEnv(VecEnv):
     """
-    Creates a simple vectorized wrapper for multiple environments
+    Creates a simple vectorized wrapper for multiple environments, calling each environment in sequence on the current
+    Python process. This is useful for computationally simple environment such as ``cartpole-v1``, as the overhead of
+    multiprocess or multithread outweighs the environment computation time. This can also be used for RL methods that
+    require a vectorized environment, but that you want a single environments to train with.
 
     :param env_fns: ([Gym Environment]) the list of environments to vectorize
     """
@@ -26,6 +29,7 @@ class DummyVecEnv(VecEnv):
         self.buf_rews = np.zeros((self.num_envs,), dtype=np.float32)
         self.buf_infos = [{} for _ in range(self.num_envs)]
         self.actions = None
+        self.metadata = env.metadata
 
     def step_async(self, actions):
         self.actions = actions
