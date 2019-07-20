@@ -15,14 +15,24 @@ Breaking Changes:
 New Features:
 ^^^^^^^^^^^^^
 
+- Add support for continuous action spaces to `action_probability`, computing the PDF of a Gaussian
+  policy in addition to the existing support for categorical stochastic policies.
+- Add flag to `action_probability` to return log-probabilities.
+- Added support for python lists and numpy arrays in ``logger.writekvs``. (@dwiel)
+
 Bug Fixes:
 ^^^^^^^^^^
+- fixed a bug in ``traj_segment_generator`` where the ``episode_starts`` was wrongly recorded,
+  resulting in wrong calculation of Generalized Advantage Estimation (GAE), this affects TRPO, PPO1 and GAIL (thanks to @miguelrass for spotting the bug)
 
 Deprecations:
 ^^^^^^^^^^^^^
 
 Others:
 ^^^^^^^
+- renamed some keys in ``traj_segment_generator`` to be more meaningful
+- retrieve unnormalized reward when using Monitor wrapper with TRPO, PPO1 and GAIL
+  to display them in the logs (mean episode reward)
 
 Documentation:
 ^^^^^^^^^^^^^^
@@ -40,7 +50,6 @@ Breaking Changes:
 ^^^^^^^^^^^^^^^^^
 
 - **breaking change** removed ``stable_baselines.ddpg.memory`` in favor of ``stable_baselines.deepq.replay_buffer`` (see fix below)
-
 
 **Breaking Change:** DDPG replay buffer was unified with DQN/SAC replay buffer. As a result,
 when loading a DDPG model trained with stable_baselines<2.6.0, it throws an import error.
@@ -399,4 +408,4 @@ In random order...
 Thanks to @bjmuld @iambenzo @iandanforth @r7vme @brendenpetersen @huvar @abhiskk @JohannesAck
 @EliasHasle @mrakgr @Bleyddyn @antoine-galataud @junhyeokahn @AdamGleave @keshaviyengar @tperol
 @XMaster96 @kantneel @Pastafarianist @GerardMaggiolino @PatrickWalter214 @yutingsz @sc420 @Aaahh @billtubbs
-@Miffyli @dwiel
+@Miffyli @dwiel @miguelrass
