@@ -144,7 +144,10 @@ def test_pretrain_images():
                                               [PPO2, 1, False, "MlpPolicy",
                                                "Pendulum-v0", EXPERT_PATH_PENDULUM, 32, 1],
                                               [TRPO, 1, False, "MlpPolicy",
-                                               "Pendulum-v0", EXPERT_PATH_PENDULUM, 32, 1]])
+                                               "Pendulum-v0", EXPERT_PATH_PENDULUM, 32, 1],
+                                              [TD3, 1, False, "MlpPolicy",
+                                               "Pendulum-v0", EXPERT_PATH_PENDULUM, 32, 1]
+                                              ])
 
 def test_behavior_cloning(model_class_data):
 
@@ -158,18 +161,6 @@ def test_behavior_cloning(model_class_data):
         dataset = ExpertDataset(expert_path=load_data, traj_limitation=3,
                                 sequential_preprocessing=True, verbose=0,
                                 batch_size=batch_size)
-        
-@pytest.mark.parametrize("model_class", [A2C, GAIL, DDPG, PPO1, PPO2, SAC, TD3, TRPO])
-def test_behavior_cloning_box(model_class):
-    """
-    Behavior cloning with continuous actions.
-    """
-    dataset = ExpertDataset(expert_path=EXPERT_PATH_PENDULUM, traj_limitation=10,
-                            sequential_preprocessing=True, verbose=0)
-    model = model_class("MlpPolicy", "Pendulum-v0")
-    model.pretrain(dataset, n_epochs=20)
-    model.save("test-pretrain")
-    del dataset, model
 
     env = DummyVecEnv([lambda: gym.make(game) for i in range(num_env)])
 
@@ -182,7 +173,6 @@ def test_behavior_cloning_box(model_class):
     model.save("test-pretrain")
 
     del dataset, model, env
-
 
 def test_dataset_param_validation():
     with pytest.raises(ValueError):
