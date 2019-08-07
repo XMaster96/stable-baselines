@@ -15,17 +15,18 @@ along with some useful characteristics: support for recurrent policies, discrete
 ============ ======================== ========= =========== ============ ================
 Name         Refactored [#f1]_        Recurrent ``Box``     ``Discrete`` Multi Processing
 ============ ======================== ========= =========== ============ ================
-A2C          ✔️                        ✔️         ✔️           ✔️            ✔️
-ACER         ✔️                        ✔️         ❌ [#f4]_   ✔️            ✔️
-ACKTR        ✔️                        ✔️         ❌ [#f4]_   ✔️            ✔️
+A2C          ✔️                        ✔️        ✔️           ✔️           ✔️
+ACER         ✔️                        ✔️        ❌ [#f4]_    ✔️           ✔️
+ACKTR        ✔️                        ✔️        ❌ [#f4]_    ✔️           ✔️
 DDPG         ✔️                        ❌        ✔️           ❌           ✔️ [#f3]_
-DQN          ✔️                        ❌        ❌          ✔️            ❌
-HER          ✔️                        ❌        ✔️           ✔️            ❌
-GAIL [#f2]_  ✔️                        ✔️         ✔️           ✔️            ✔️ [#f3]_
-PPO1         ✔️                        ❌        ✔️           ✔️            ✔️ [#f3]_
-PPO2         ✔️                        ✔️         ✔️           ✔️            ✔️
-SAC          ✔️                        ❌        ✔️           ❌           ❌
-TRPO         ✔️                        ❌        ✔️           ✔️            ✔️ [#f3]_
+DQN          ✔️                        ❌        ❌           ✔️           ❌
+HER          ✔️                        ❌        ✔️           ✔️           ❌
+GAIL [#f2]_  ✔️                        ✔️        ✔️           ✔️           ✔️ [#f3]_
+PPO1         ✔️                        ❌        ✔️           ✔️           ✔️ [#f3]_
+PPO2         ✔️                        ✔️        ✔️           ✔️           ✔️
+SAC          ✔️                        ❌        ✔️          ❌            ❌
+TD3          ✔️                        ❌        ✔️          ❌            ❌
+TRPO         ✔️                        ❌        ✔️           ✔            ✔️ [#f3]_
 ============ ======================== ========= =========== ============ ================
 
 .. [#f1] Whether or not the algorithm has be refactored to fit the ``BaseRLModel`` class.
@@ -34,8 +35,8 @@ TRPO         ✔️                        ❌        ✔️           ✔️   
 .. [#f4] TODO, in project scope.
 
 .. note::
-    Non-array spaces such as `Dict` or `Tuple` are not currently supported by any algorithm,
-    except HER for dict when working with gym.GoalEnv
+    Non-array spaces such as ``Dict`` or ``Tuple`` are not currently supported by any algorithm,
+    except HER for dict when working with ``gym.GoalEnv``
 
 Actions ``gym.spaces``:
 
@@ -47,3 +48,8 @@ Actions ``gym.spaces``:
 - ``MultiBinary``: A list of possible actions, where each timestep any of the actions can be used in any combination.
 
 .. _MPI: https://mpi4py.readthedocs.io/en/stable/
+
+.. note::
+
+  Some logging values (like `ep_rewmean`, `eplenmean`) are only available when using a Monitor wrapper
+  See `Issue #339 <https://github.com/hill-a/stable-baselines/issues/339>`_ for more info.

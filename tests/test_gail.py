@@ -4,7 +4,9 @@ import gym
 import numpy as np
 import pytest
 
-from stable_baselines import A2C, ACER, ACKTR, GAIL, DQN, PPO1, PPO2, TRPO, SAC
+from stable_baselines import A2C, ACER, ACKTR, GAIL, DDPG, DQN, PPO1, PPO2,\
+ TD3, TRPO, SAC
+
 from stable_baselines.common.cmd_util import make_atari_env
 from stable_baselines.common.vec_env import VecFrameStack, DummyVecEnv
 from stable_baselines.gail import ExpertDataset, ExpertDatasetLSTM, generate_expert_traj
@@ -156,6 +158,18 @@ def test_behavior_cloning(model_class_data):
         dataset = ExpertDataset(expert_path=load_data, traj_limitation=3,
                                 sequential_preprocessing=True, verbose=0,
                                 batch_size=batch_size)
+        
+@pytest.mark.parametrize("model_class", [A2C, GAIL, DDPG, PPO1, PPO2, SAC, TD3, TRPO])
+def test_behavior_cloning_box(model_class):
+    """
+    Behavior cloning with continuous actions.
+    """
+    dataset = ExpertDataset(expert_path=EXPERT_PATH_PENDULUM, traj_limitation=10,
+                            sequential_preprocessing=True, verbose=0)
+    model = model_class("MlpPolicy", "Pendulum-v0")
+    model.pretrain(dataset, n_epochs=20)
+    model.save("test-pretrain")
+    del dataset, model
 
     env = DummyVecEnv([lambda: gym.make(game) for i in range(num_env)])
 

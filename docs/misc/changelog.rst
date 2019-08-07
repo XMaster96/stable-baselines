@@ -5,25 +5,61 @@ Changelog
 
 For download links, please look at `Github release page <https://github.com/hill-a/stable-baselines/releases>`_.
 
+Pre-Release 2.7.1a0 (WIP)
+-------------------------
 
-Pre-Release 2.6.1a0 (WIP)
+Breaking Changes:
+^^^^^^^^^^^^^^^^^
+- OpenMPI-dependent algorithms (PPO1, TRPO, GAIL, DDPG) are disabled in the
+  default installation of stable_baselines. `mpi4py` is now installed as an
+  extra. When `mpi4py` is not available, stable-baselines skips imports of
+  OpenMPI-dependent algorithms.
+  See :ref:`installation notes <openmpi>` and
+  `Issue #430 <https://github.com/hill-a/stable-baselines/issues/430>`.
+
+New Features:
+^^^^^^^^^^^^^
+
+Bug Fixes:
+^^^^^^^^^^
+- Skip automatic imports of OpenMPI-dependent algorithms to avoid an issue
+  where OpenMPI would cause stable-baselines to hang on Ubuntu installs.
+  See :ref:`installation notes <openmpi>` and
+  `Issue #430 <https://github.com/hill-a/stable-baselines/issues/430>`.
+
+Deprecations:
+^^^^^^^^^^^^^
+
+Others:
+^^^^^^^
+
+Documentation:
+^^^^^^^^^^^^^^
+- Add WaveRL project (@jaberkow)
+
+
+Release 2.7.0 (2019-07-31)
 --------------------------
+
+**Twin Delayed DDPG (TD3) and GAE bug fix (TRPO, PPO1, GAIL)**
 
 Breaking Changes:
 ^^^^^^^^^^^^^^^^^
 
 New Features:
 ^^^^^^^^^^^^^
-
-- Add support for continuous action spaces to `action_probability`, computing the PDF of a Gaussian
+- added Twin Delayed DDPG (TD3) algorithm, with HER support
+- added support for continuous action spaces to `action_probability`, computing the PDF of a Gaussian
   policy in addition to the existing support for categorical stochastic policies.
-- Add flag to `action_probability` to return log-probabilities.
-- Added support for python lists and numpy arrays in ``logger.writekvs``. (@dwiel)
+- added flag to `action_probability` to return log-probabilities.
+- added support for python lists and numpy arrays in ``logger.writekvs``. (@dwiel)
+- the info dict returned by VecEnvs now include a ``terminal_observation`` key providing access to the last observation in a trajectory. (@qxcv)
 
 Bug Fixes:
 ^^^^^^^^^^
 - fixed a bug in ``traj_segment_generator`` where the ``episode_starts`` was wrongly recorded,
   resulting in wrong calculation of Generalized Advantage Estimation (GAE), this affects TRPO, PPO1 and GAIL (thanks to @miguelrass for spotting the bug)
+- added missing property `n_batch` in `BasePolicy`.
 
 Deprecations:
 ^^^^^^^^^^^^^
@@ -33,11 +69,13 @@ Others:
 - renamed some keys in ``traj_segment_generator`` to be more meaningful
 - retrieve unnormalized reward when using Monitor wrapper with TRPO, PPO1 and GAIL
   to display them in the logs (mean episode reward)
+- clean up DDPG code (renamed variables)
 
 Documentation:
 ^^^^^^^^^^^^^^
 
 - doc fix for the hyperparameter tuning command in the rl zoo
+- added an example on how to log additional variable with tensorboard and a callback
 
 
 
@@ -408,4 +446,4 @@ In random order...
 Thanks to @bjmuld @iambenzo @iandanforth @r7vme @brendenpetersen @huvar @abhiskk @JohannesAck
 @EliasHasle @mrakgr @Bleyddyn @antoine-galataud @junhyeokahn @AdamGleave @keshaviyengar @tperol
 @XMaster96 @kantneel @Pastafarianist @GerardMaggiolino @PatrickWalter214 @yutingsz @sc420 @Aaahh @billtubbs
-@Miffyli @dwiel @miguelrass
+@Miffyli @dwiel @miguelrass @qxcv @jaberkow
