@@ -151,7 +151,8 @@ def test_pretrain_images():
 
 def test_behavior_cloning(model_class_data):
 
-    model_class, num_env, lstm, policy, game, load_data, batch_size, envs_per_batch = model_class_data
+    model_class, num_env, lstm, policy, game, load_data, batch_size, envs_per_batch = \
+        model_class_data
 
     if lstm:
         dataset = ExpertDatasetLSTM(expert_path=load_data, traj_limitation=3,

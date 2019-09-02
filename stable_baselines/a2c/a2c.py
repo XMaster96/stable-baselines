@@ -99,7 +99,8 @@ class A2C(ActorCriticRLModel):
 
         if isinstance(self.action_space, gym.spaces.Discrete):
             return policy.obs_ph, self.actions_ph, states_ph, snew_ph, dones_ph, policy.policy
-        return policy.obs_ph, self.actions_ph, states_ph, snew_ph, dones_ph, policy.deterministic_action
+        return policy.obs_ph, self.actions_ph, states_ph, snew_ph, dones_ph,\
+               policy.deterministic_action
 
     def setup_model(self):
         with SetVerbosity(self.verbose):

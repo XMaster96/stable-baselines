@@ -75,7 +75,8 @@ class ExpertDataset(Dataset):
         for pre-training using behavior cloning (BC).
     :param batch_size: (int) the minibatch size for behavior cloning
     :param traj_limitation: (int) the number of trajectory to use (if -1, load all)
-    :param randomize: (bool) if the dataset should be shuffled, this will be overwritten to False if LSTM is True.
+    :param randomize: (bool) if the dataset should be shuffled, this will be overwritten to False
+        if LSTM is True.
     :param verbose: (int) Verbosity
     :param sequential_preprocessing: (bool) Do not use subprocess to preprocess
         the data (slower but use less memory for the CI)
@@ -154,10 +155,12 @@ class ExpertDataset(Dataset):
         self.sequential_preprocessing = sequential_preprocessing
 
         self.dataloader = None
-        self.train_loader = DataLoader(train_indices, self.observations, self.actions, self.mask, batch_size,
+        self.train_loader = DataLoader(train_indices, self.observations, self.actions,
+                                       self.mask, batch_size,
                                        shuffle=self.randomize, start_process=False,
                                        sequential=sequential_preprocessing)
-        self.val_loader = DataLoader(val_indices, self.observations, self.actions, self.mask, batch_size,
+        self.val_loader = DataLoader(val_indices, self.observations, self.actions,
+                                     self.mask, batch_size,
                                      shuffle=self.randomize, start_process=False,
                                      sequential=sequential_preprocessing)
 
@@ -181,13 +184,17 @@ class ExpertDatasetLSTM(Dataset):
     Dataset for using behavior cloning or GAIL.
 
     The structure of the expert dataset is a dict, saved as an ".npz" archive.
-    The dictionary contains the keys 'actions', 'episode_returns', 'rewards', 'obs' and 'episode_starts'.
-    The corresponding values have data concatenated across episode: the first axis is the timestep,
-    the remaining axes index into the data. In case of images, 'obs' contains the relative path to
-    the images, to enable space saving from image compression.
+    The dictionary contains the keys 'actions', 'episode_returns', 'rewards',
+    'obs' and 'episode_starts'. The corresponding values have data
+    concatenated across episode: the first axis is the timestep,
+    the remaining axes index into the data. In case of images,
+    'obs' contains the relative path to the images, to enable space
+    saving from image compression.
 
-    :param expert_path: (str) The path to trajectory data (.npz file). Mutually exclusive with traj_data.
-    :param traj_data: (dict) Trajectory data, in format described above. Mutually exclusive with expert_path.
+    :param expert_path: (str) The path to trajectory data (.npz file).
+        Mutually exclusive with traj_data.
+    :param traj_data: (dict) Trajectory data, in format described above.
+        Mutually exclusive with expert_path.
     :param train_fraction: (float) the train validation split (0 to 1)
         for pre-training using behavior cloning (BC)
     :param batch_size: (int) the minibatch size for behavior cloning
@@ -195,7 +202,8 @@ class ExpertDatasetLSTM(Dataset):
     :param verbose: (int) Verbosity
     :param sequential_preprocessing: (bool) Do not use subprocess to preprocess
         the data (slower but use less memory for the CI)
-    :param envs_per_batch: (int) Only used if LSTM is True. Number of envs that are processed per batch.
+    :param envs_per_batch: (int) Only used if LSTM is True. Number of envs that
+        are processed per batch.
     """
 
     def __init__(self, expert_path=None, traj_data=None, train_fraction=0.7,
@@ -309,8 +317,8 @@ class ExpertDatasetLSTM(Dataset):
                 indices += c_i[i:i+batch_size]
 
         # Free memory
-        del split_indices, len_list, sort_buffer, stack_indices, max_len, mod_max_len, final_stack_len,\
-            cycle_indices
+        del split_indices, len_list, sort_buffer, stack_indices, max_len, mod_max_len,\
+            final_stack_len, cycle_indices
 
         # Train/Validation split when using behavior cloning
         train_indices = indices[:split_point]
@@ -329,17 +337,21 @@ class ExpertDatasetLSTM(Dataset):
         self.std_ret = np.std(np.array(self.returns))
         self.verbose = verbose
 
-        assert len(self.observations) == len(self.actions), "The number of actions and observations differ " \
-                                                            "please check your expert dataset"
+        assert len(self.observations) == len(self.actions), "The number of actions and " \
+                                                            "observations differ " \
+                                                            "please check your expert" \
+                                                            "dataset"
         self.num_traj = min(traj_limitation, np.sum(episode_starts))
         self.num_transition = len(self.observations)
         self.sequential_preprocessing = sequential_preprocessing
 
         self.dataloader = None
-        self.train_loader = DataLoader(train_indices, self.observations, self.actions, self.mask, use_batch_size,
+        self.train_loader = DataLoader(train_indices, self.observations, self.actions,
+                                       self.mask, use_batch_size,
                                        start_process=False, sequential=sequential_preprocessing,
                                        partial_minibatch=False)
-        self.val_loader = DataLoader(val_indices, self.observations, self.actions, self.mask, use_batch_size,
+        self.val_loader = DataLoader(val_indices, self.observations, self.actions,
+                                     self.mask, use_batch_size,
                                      start_process=False, sequential=sequential_preprocessing,
                                      partial_minibatch=False)
 
