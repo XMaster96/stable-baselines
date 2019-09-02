@@ -61,6 +61,7 @@ class Dataset(object):
         plt.show()
 
 class ExpertDataset(Dataset):
+
     """
     Dataset for using behavior cloning or GAIL.
     The structure of the expert dataset is a dict, saved as an ".npz" archive.
@@ -71,7 +72,7 @@ class ExpertDataset(Dataset):
     :param expert_path: (str) The path to trajectory data (.npz file). Mutually exclusive with traj_data.
     :param traj_data: (dict) Trajectory data, in format described above. Mutually exclusive with expert_path.
     :param train_fraction: (float) the train validation split (0 to 1)
-        for pre-training using behavior cloning (BC)
+        for pre-training using behavior cloning (BC).
     :param batch_size: (int) the minibatch size for behavior cloning
     :param traj_limitation: (int) the number of trajectory to use (if -1, load all)
     :param randomize: (bool) if the dataset should be shuffled, this will be overwritten to False if LSTM is True.
