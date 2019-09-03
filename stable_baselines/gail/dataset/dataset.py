@@ -64,11 +64,13 @@ class ExpertDataset(Dataset):
 
     """
     Dataset for using behavior cloning or GAIL.
+
     The structure of the expert dataset is a dict, saved as an ".npz" archive.
     The dictionary contains the keys 'actions', 'episode_returns', 'rewards', 'obs' and 'episode_starts'.
     The corresponding values have data concatenated across episode: the first axis is the timestep,
     the remaining axes index into the data. In case of images, 'obs' contains the relative path to
     the images, to enable space saving from image compression.
+
     :param expert_path: (str) The path to trajectory data (.npz file). Mutually exclusive with traj_data.
     :param traj_data: (dict) Trajectory data, in format described above. Mutually exclusive with expert_path.
     :param train_fraction: (float) the train validation split (0 to 1)
@@ -155,13 +157,21 @@ class ExpertDataset(Dataset):
         self.sequential_preprocessing = sequential_preprocessing
 
         self.dataloader = None
-        self.train_loader = DataLoader(train_indices, self.observations, self.actions,
+        self.train_loader = DataLoader(train_indices,
+                                       self.observations,
+                                       self.actions,
                                        self.mask, batch_size,
-                                       shuffle=self.randomize, start_process=False,
+                                       shuffle=self.randomize,
+                                       start_process=False,
                                        sequential=sequential_preprocessing)
-        self.val_loader = DataLoader(val_indices, self.observations, self.actions,
-                                     self.mask, batch_size,
-                                     shuffle=self.randomize, start_process=False,
+
+        self.val_loader = DataLoader(val_indices,
+                                     self.observations,
+                                     self.actions,
+                                     self.mask,
+                                     batch_size,
+                                     shuffle=self.randomize,
+                                     start_process=False,
                                      sequential=sequential_preprocessing)
 
         if self.verbose >= 1:
@@ -173,8 +183,13 @@ class ExpertDataset(Dataset):
         :param batch_size: (int)
         """
         indices = np.random.permutation(len(self.observations)).astype(np.int64)
-        self.dataloader = DataLoader(indices, self.observations, self.actions, self.mask, batch_size,
-                                     shuffle=self.randomize, start_process=False,
+        self.dataloader = DataLoader(indices,
+                                     self.observations,
+                                     self.actions,
+                                     self.mask,
+                                     batch_size,
+                                     shuffle=self.randomize,
+                                     start_process=False,
                                      sequential=self.sequential_preprocessing)
 
 
@@ -346,13 +361,22 @@ class ExpertDatasetLSTM(Dataset):
         self.sequential_preprocessing = sequential_preprocessing
 
         self.dataloader = None
-        self.train_loader = DataLoader(train_indices, self.observations, self.actions,
-                                       self.mask, use_batch_size,
-                                       start_process=False, sequential=sequential_preprocessing,
+        self.train_loader = DataLoader(train_indices,
+                                       self.observations,
+                                       self.actions,
+                                       self.mask,
+                                       use_batch_size,
+                                       start_process=False,
+                                       sequential=sequential_preprocessing,
                                        partial_minibatch=False)
-        self.val_loader = DataLoader(val_indices, self.observations, self.actions,
-                                     self.mask, use_batch_size,
-                                     start_process=False, sequential=sequential_preprocessing,
+
+        self.val_loader = DataLoader(val_indices,
+                                     self.observations,
+                                     self.actions,
+                                     self.mask,
+                                     use_batch_size,
+                                     start_process=False,
+                                     sequential=sequential_preprocessing,
                                      partial_minibatch=False)
 
         if self.verbose >= 1:
@@ -365,8 +389,12 @@ class ExpertDatasetLSTM(Dataset):
         :param batch_size: (int)
         """
         indices = np.random.permutation(len(self.observations)).astype(np.int64)
-        self.dataloader = DataLoader(indices, self.observations, self.actions, self.mask,
-                                     batch_size, start_process=False,
+        self.dataloader = DataLoader(indices,
+                                     self.observations,
+                                     self.actions,
+                                     self.mask,
+                                     batch_size,
+                                     start_process=False,
                                      sequential=self.sequential_preprocessing)
 
 
