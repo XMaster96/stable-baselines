@@ -365,8 +365,9 @@ class ExpertDatasetLSTM(Dataset):
         :param batch_size: (int)
         """
         indices = np.random.permutation(len(self.observations)).astype(np.int64)
-        self.dataloader = DataLoader(indices, self.observations, self.actions, self.mask, batch_size,
-                                     start_process=False, sequential=self.sequential_preprocessing)
+        self.dataloader = DataLoader(indices, self.observations, self.actions, self.mask,
+                                     batch_size, start_process=False,
+                                     sequential=self.sequential_preprocessing)
 
 
 class DataLoader(object):
