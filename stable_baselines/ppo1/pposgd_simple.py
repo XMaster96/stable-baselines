@@ -344,7 +344,7 @@ class PPO1(ActorCriticRLModel):
 
         return self
 
-    def save(self, save_path):
+    def save(self, save_path, cloudpickle=False):
         data = {
             "gamma": self.gamma,
             "timesteps_per_actorbatch": self.timesteps_per_actorbatch,
@@ -367,4 +367,4 @@ class PPO1(ActorCriticRLModel):
 
         params_to_save = self.get_parameters()
 
-        self._save_to_file(save_path, data=data, params=params_to_save)
+        self._save_to_file(save_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
