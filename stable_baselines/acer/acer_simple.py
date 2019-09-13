@@ -154,13 +154,13 @@ class ACER(ActorCriticRLModel):
         action_ph = policy.pdtype.sample_placeholder([None])
 
         if self.policy.recurrent:
-            states_ph = None
-            snew_ph = None
-            dones_ph = None
-        else:
             states_ph = policy.states_ph
             snew_ph = policy.snew
             dones_ph = policy.dones_ph
+        else:
+            states_ph = None
+            snew_ph = None
+            dones_ph = None
 
         if isinstance(self.action_space, Discrete):
             return policy.obs_ph, action_ph, states_ph, snew_ph, dones_ph, policy.policy

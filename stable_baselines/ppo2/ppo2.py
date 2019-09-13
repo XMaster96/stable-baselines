@@ -101,14 +101,16 @@ class PPO2(ActorCriticRLModel):
 
     def _get_pretrain_placeholders(self):
 
-        if self.initial_state is None:
-            policy = self.act_model
-            states_ph, snew_ph, dones_ph = None, None, None
-        else:
+        if self.policy.recurrent:
             policy = self.train_model
             states_ph = policy.states_ph
             snew_ph = policy.snew
             dones_ph = policy.dones_ph
+        else:
+            policy = self.act_model
+            states_ph = None
+            snew_ph = None
+            dones_ph = None
 
         if isinstance(self.action_space, gym.spaces.Discrete):
             return policy.obs_ph, self.action_ph, states_ph, snew_ph, dones_ph, policy.policy
