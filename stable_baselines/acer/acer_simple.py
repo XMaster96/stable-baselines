@@ -153,7 +153,7 @@ class ACER(ActorCriticRLModel):
         policy = self.step_model
         action_ph = policy.pdtype.sample_placeholder([None])
 
-        if self.initial_state is None:
+        if self.policy.recurrent:
             states_ph = None
             snew_ph = None
             dones_ph = None

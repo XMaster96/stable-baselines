@@ -103,9 +103,7 @@ class PPO2(ActorCriticRLModel):
 
         if self.initial_state is None:
             policy = self.act_model
-            states_ph = None
-            snew_ph = None
-            dones_ph = None
+            states_ph, snew_ph, dones_ph = None, None, None
         else:
             policy = self.train_model
             states_ph = policy.states_ph

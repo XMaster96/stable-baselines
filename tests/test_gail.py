@@ -107,61 +107,48 @@ def test_pretrain_images():
     del dataset, model, env
 
 
-@pytest.mark.parametrize("model_class_data", [[A2C, 4, True, "MlpLstmPolicy",
-                                               "CartPole-v1", EXPERT_PATH_DISCRETE, 32, 4],
-                                              [ACER, 4, True, "MlpLstmPolicy",
-                                               "CartPole-v1", EXPERT_PATH_DISCRETE, 1, 4],
-                                              [ACKTR, 4, True, "MlpLstmPolicy",
-                                               "CartPole-v1", EXPERT_PATH_DISCRETE, 16, 4],
-                                              [PPO2, 8, True, "MlpLstmPolicy",
-                                               "CartPole-v1", EXPERT_PATH_DISCRETE, 16, 2],
-                                              [A2C, 1, False, "MlpPolicy",
-                                               "CartPole-v1", EXPERT_PATH_DISCRETE, 32, 1],
-                                              [ACER, 1, False, "MlpPolicy",
-                                               "CartPole-v1", EXPERT_PATH_DISCRETE, 32, 1],
-                                              [ACKTR, 1, False, "MlpPolicy",
-                                               "CartPole-v1", EXPERT_PATH_DISCRETE, 32, 1],
-                                              [DQN, 1, False, "MlpPolicy",
-                                               "CartPole-v1", EXPERT_PATH_DISCRETE, 32, 1],
-                                              [GAIL, 1, False, "MlpPolicy",
-                                               "CartPole-v1", EXPERT_PATH_DISCRETE, 32, 1],
-                                              [PPO1, 1, False, "MlpPolicy",
-                                               "CartPole-v1", EXPERT_PATH_DISCRETE, 32, 1],
-                                              [PPO2, 1, False, "MlpPolicy",
-                                               "CartPole-v1", EXPERT_PATH_DISCRETE, 32, 1],
-                                              [TRPO, 1, False, "MlpPolicy",
-                                               "CartPole-v1", EXPERT_PATH_DISCRETE, 32, 1],
-                                              [A2C, 4, True, "MlpLstmPolicy",
-                                               "Pendulum-v0", EXPERT_PATH_PENDULUM, 32, 4],
-                                              [PPO2, 8, True, "MlpLstmPolicy",
-                                               "Pendulum-v0", EXPERT_PATH_PENDULUM, 16, 2],
-                                              [A2C, 1, False, "MlpPolicy",
-                                               "Pendulum-v0", EXPERT_PATH_PENDULUM, 32, 1],
-                                              [GAIL, 1, False, "MlpPolicy",
-                                               "Pendulum-v0", EXPERT_PATH_PENDULUM, 32, 1],
-                                              [PPO1, 1, False, "MlpPolicy",
-                                               "Pendulum-v0", EXPERT_PATH_PENDULUM, 32, 1],
-                                              [PPO2, 1, False, "MlpPolicy",
-                                               "Pendulum-v0", EXPERT_PATH_PENDULUM, 32, 1],
-                                              [TRPO, 1, False, "MlpPolicy",
-                                               "Pendulum-v0", EXPERT_PATH_PENDULUM, 32, 1],
-                                              [TD3, 1, False, "MlpPolicy",
-                                               "Pendulum-v0", EXPERT_PATH_PENDULUM, 32, 1]
+@pytest.mark.parametrize("model_class_data", [[A2C, 4, True, "CartPole-v1", 32, 4],
+                                              [ACER, 4, True, "CartPole-v1", 1, 4],
+                                              [ACKTR, 4, True, "CartPole-v1", 16, 4],
+                                              [PPO2, 8, True, "CartPole-v1", 16, 2],
+                                              [A2C, 1, False, "CartPole-v1", 32, 1],
+                                              [ACER, 1, False, "CartPole-v1", 32, 1],
+                                              [ACKTR, 1, False, "CartPole-v1", 32, 1],
+                                              [DQN, 1, False, "CartPole-v1", 32, 1],
+                                              [GAIL, 1, False, "CartPole-v1", 32, 1],
+                                              [PPO1, 1, False, "CartPole-v1", 32, 1],
+                                              [PPO2, 1, False,  "CartPole-v1", 32, 1],
+                                              [TRPO, 1, False, "CartPole-v1", 32, 1],
+                                              [A2C, 4, True, "Pendulum-v0", 32, 4],
+                                              [PPO2, 8, True, "Pendulum-v0", 16, 2],
+                                              [A2C, 1, False, "Pendulum-v0", 32, 1],
+                                              [GAIL, 1, False, "Pendulum-v0", 32, 1],
+                                              [PPO1, 1, False, "Pendulum-v0", 32, 1],
+                                              [PPO2, 1, False, "Pendulum-v0", 32, 1],
+                                              [TRPO, 1, False, "Pendulum-v0", 32, 1],
+                                              [TD3, 1, False, "Pendulum-v0", 32, 1]
                                               ])
 
 def test_behavior_cloning(model_class_data):
 
-    model_class, num_env, lstm, policy, game, load_data, batch_size, envs_per_batch = \
-        model_class_data
+    model_class, num_env, lstm, game, batch_size, envs_per_batch = model_class_data
+
+    if game == "CartPole-v1":
+        load_data = EXPERT_PATH_DISCRETE
+    else:
+        load_data = EXPERT_PATH_PENDULUM
 
     if lstm:
         dataset = ExpertDatasetLSTM(expert_path=load_data, traj_limitation=3,
                                 sequential_preprocessing=True, verbose=0,
                                 batch_size=batch_size, envs_per_batch=envs_per_batch)
+        policy = "MlpLstmPolicy"
+
     else:
         dataset = ExpertDataset(expert_path=load_data, traj_limitation=3,
                                 sequential_preprocessing=True, verbose=0,
                                 batch_size=batch_size)
+        policy = "MlpPolicy"
 
     env = DummyVecEnv([lambda: gym.make(game) for i in range(num_env)])
 

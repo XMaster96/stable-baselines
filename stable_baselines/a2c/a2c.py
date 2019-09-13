@@ -89,9 +89,7 @@ class A2C(ActorCriticRLModel):
         policy = self.train_model
 
         if self.initial_state is None:
-            states_ph = None
-            snew_ph = None
-            dones_ph = None
+            states_ph, snew_ph, dones_ph = None, None, None
         else:
             states_ph = policy.states_ph
             snew_ph = policy.snew

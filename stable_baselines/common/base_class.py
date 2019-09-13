@@ -245,9 +245,7 @@ class BaseRLModel(ABC):
             else:
                 val_interval = int(n_epochs / 10)
 
-        use_lstm = self.initial_state is not None
-
-        if use_lstm:
+        if self.policy.recurrent:
             if self.nminibatches is None:
                 envs_per_batch = self.n_envs * self.n_steps
             else:
@@ -282,7 +280,7 @@ class BaseRLModel(ABC):
 
         for epoch_idx in range(int(n_epochs)):
             train_loss = 0.0
-            if use_lstm:
+            if self.policy.recurrent:
                 state = self.initial_state[:envs_per_batch]
 
             # Full pass on the training set
@@ -293,7 +291,7 @@ class BaseRLModel(ABC):
                     actions_ph: expert_actions,
                 }
 
-                if use_lstm:
+                if self.policy.recurrent:
                     feed_dict.update({states_ph: state, dones_ph: expert_mask})
                     state, train_loss_, _ = self.sess.run([snew_ph, loss, optim_op], feed_dict)
                 else:
@@ -315,11 +313,10 @@ class BaseRLModel(ABC):
                         actions_ph: expert_actions,
                     }
 
-                    if use_lstm:
+                    if self.policy.recurrent:
                         feed_dict.update({states_ph: state, dones_ph: expert_mask})
-                        val_loss_, = self.sess.run([loss], feed_dict)
-                    else:
-                        val_loss_, = self.sess.run([loss], feed_dict)
+
+                    val_loss_, = self.sess.run([loss], feed_dict)
 
                     val_loss += val_loss_
 
