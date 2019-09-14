@@ -64,6 +64,7 @@ class Dataset(object):
 def check_traj_data(expert_path=None, traj_data=None):
     """
     Sanity check expert_path and load traj_data.
+
     :param expert_path: (str) The path to trajectory data (.npz file). Mutually exclusive with traj_data.
     :param traj_data: (dict) Trajectory data, in format described above. Mutually exclusive with expert_path.
     :return: traj_data
