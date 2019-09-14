@@ -12,14 +12,6 @@ from stable_baselines import logger
 
 class Dataset(object):
 
-    def __init__(self, expert_path=None, traj_data=None):
-
-        if traj_data is not None and expert_path is not None:
-            raise ValueError("Cannot specify both 'traj_data' and 'expert_path'")
-        if traj_data is None and expert_path is None:
-            raise ValueError("Must specify one of 'traj_data' or 'expert_path'")
-        if traj_data is None:
-            self.traj_data = np.load(expert_path)
 
     def __del__(self):
         del self.dataloader, self.train_loader, self.val_loader
@@ -38,6 +30,23 @@ class Dataset(object):
         logger.log("Total transitions: {}".format(self.num_transition))
         logger.log("Average returns: {}".format(self.avg_ret))
         logger.log("Std for returns: {}".format(self.std_ret))
+
+    def check_traj_data(self, expert_path=None, traj_data=None):
+        """
+        Sanity check expert_path and load traj_data.
+        :param expert_path: (str) The path to trajectory data (.npz file). Mutually exclusive with traj_data.
+        :param traj_data: (dict) Trajectory data, in format described above. Mutually exclusive with expert_path.
+        :return: traj_data
+        """
+
+        if traj_data is not None and expert_path is not None:
+            raise ValueError("Cannot specify both 'traj_data' and 'expert_path'")
+        if traj_data is None and expert_path is None:
+            raise ValueError("Must specify one of 'traj_data' or 'expert_path'")
+        if traj_data is None:
+            traj_data = np.load(expert_path)
+
+        return traj_data
 
     def get_next_batch(self, split=None):
         """
@@ -96,18 +105,16 @@ class ExpertDataset(Dataset):
                  batch_size=64, traj_limitation=-1, randomize=True, verbose=1,
                  sequential_preprocessing=False):
 
-        self.traj_data = traj_data
-
-        super(ExpertDataset, self).__init__(expert_path=expert_path, traj_data=traj_data)
+        traj_data = self.check_traj_data(expert_path=expert_path, traj_data=traj_data)
 
         if verbose > 0:
-            for key, val in self.traj_data.items():
+            for key, val in traj_data.items():
                 print(key, val.shape)
 
         # Array of bool where episode_starts[i] = True for each new episode
-        episode_starts = self.traj_data['episode_starts']
+        episode_starts = traj_data['episode_starts']
 
-        traj_limit_idx = len(self.traj_data['obs'])
+        traj_limit_idx = len(traj_data['obs'])
 
         if traj_limitation > 0:
             n_episodes = 0
@@ -118,8 +125,8 @@ class ExpertDataset(Dataset):
                 if n_episodes == (traj_limitation + 1):
                     traj_limit_idx = idx - 1
 
-        observations = self.traj_data['obs'][:traj_limit_idx]
-        actions = self.traj_data['actions'][:traj_limit_idx]
+        observations = traj_data['obs'][:traj_limit_idx]
+        actions = traj_data['actions'][:traj_limit_idx]
         mask = episode_starts[:traj_limit_idx]
 
         # obs, actions: shape (N * L, ) + S
@@ -150,7 +157,7 @@ class ExpertDataset(Dataset):
         self.actions = actions
         self.mask = mask
 
-        self.returns = self.traj_data['episode_returns'][:traj_limit_idx]
+        self.returns = traj_data['episode_returns'][:traj_limit_idx]
         self.avg_ret = sum(self.returns) / len(self.returns)
         self.std_ret = np.std(np.array(self.returns))
         self.verbose = verbose
@@ -230,21 +237,19 @@ class ExpertDatasetLSTM(Dataset):
                  batch_size=64, traj_limitation=-1, verbose=1, envs_per_batch=1,
                  sequential_preprocessing=False):
 
-        self.traj_data = traj_data
-
-        super(ExpertDatasetLSTM, self).__init__(expert_path=expert_path, traj_data=traj_data)
+        traj_data = self.check_traj_data(expert_path=expert_path, traj_data=traj_data)
 
         if verbose > 0:
-            for key, val in self.traj_data.items():
+            for key, val in traj_data.items():
                 print(key, val.shape)
 
         envs_per_batch = int(envs_per_batch)
         use_batch_size = batch_size * envs_per_batch
 
         # Array of bool where episode_starts[i] = True for each new episode
-        episode_starts = self.traj_data['episode_starts']
+        episode_starts = traj_data['episode_starts']
 
-        traj_limit_idx = len(self.traj_data['obs'])
+        traj_limit_idx = len(traj_data['obs'])
 
         if traj_limitation > 0:
             n_episodes = 0
@@ -255,8 +260,8 @@ class ExpertDatasetLSTM(Dataset):
                 if n_episodes == (traj_limitation + 1):
                     traj_limit_idx = idx - 1
 
-        observations = self.traj_data['obs'][:traj_limit_idx]
-        actions = self.traj_data['actions'][:traj_limit_idx]
+        observations = traj_data['obs'][:traj_limit_idx]
+        actions = traj_data['actions'][:traj_limit_idx]
         mask = episode_starts[:traj_limit_idx]
 
         start_index_list = []
@@ -349,7 +354,7 @@ class ExpertDatasetLSTM(Dataset):
         self.actions = actions
         self.mask = mask
 
-        self.returns = self.traj_data['episode_returns'][:traj_limit_idx]
+        self.returns = traj_data['episode_returns'][:traj_limit_idx]
         self.avg_ret = sum(self.returns) / len(self.returns)
         self.std_ret = np.std(np.array(self.returns))
         self.verbose = verbose
