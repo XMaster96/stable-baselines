@@ -31,23 +31,6 @@ class Dataset(object):
         logger.log("Average returns: {}".format(self.avg_ret))
         logger.log("Std for returns: {}".format(self.std_ret))
 
-    def check_data(self, expert_path=None, traj_data=None):
-        """
-        Sanity check expert_path and load traj_data.
-        :param expert_path: (str) The path to trajectory data (.npz file). Mutually exclusive with traj_data.
-        :param traj_data: (dict) Trajectory data, in format described above. Mutually exclusive with expert_path.
-        :return: traj_data
-        """
-
-        if traj_data is not None and expert_path is not None:
-            raise ValueError("Cannot specify both 'traj_data' and 'expert_path'")
-        if traj_data is None and expert_path is None:
-            raise ValueError("Must specify one of 'traj_data' or 'expert_path'")
-        if traj_data is None:
-            traj_data = np.load(expert_path)
-
-        return traj_data
-
     def get_next_batch(self, split=None):
         """
         Get the batch from the dataset.
@@ -78,6 +61,23 @@ class Dataset(object):
         plt.hist(self.returns)
         plt.show()
 
+def check_traj_data(expert_path=None, traj_data=None):
+    """
+    Sanity check expert_path and load traj_data.
+    :param expert_path: (str) The path to trajectory data (.npz file). Mutually exclusive with traj_data.
+    :param traj_data: (dict) Trajectory data, in format described above. Mutually exclusive with expert_path.
+    :return: traj_data
+    """
+
+    if traj_data is not None and expert_path is not None:
+        raise ValueError("Cannot specify both 'traj_data' and 'expert_path'")
+    if traj_data is None and expert_path is None:
+        raise ValueError("Must specify one of 'traj_data' or 'expert_path'")
+    if traj_data is None:
+        traj_data = np.load(expert_path)
+
+    return traj_data
+
 class ExpertDataset(Dataset):
 
     """
@@ -105,7 +105,7 @@ class ExpertDataset(Dataset):
                  batch_size=64, traj_limitation=-1, randomize=True, verbose=1,
                  sequential_preprocessing=False):
 
-        traj_data = self.check_traj_data(expert_path=expert_path, traj_data=traj_data)
+        traj_data = check_traj_data(expert_path=expert_path, traj_data=traj_data)
 
         if verbose > 0:
             for key, val in traj_data.items():
@@ -237,7 +237,7 @@ class ExpertDatasetLSTM(Dataset):
                  batch_size=64, traj_limitation=-1, verbose=1, envs_per_batch=1,
                  sequential_preprocessing=False):
 
-        traj_data = self.check_traj_data(expert_path=expert_path, traj_data=traj_data)
+        traj_data = check_traj_data(expert_path=expert_path, traj_data=traj_data)
 
         if verbose > 0:
             for key, val in traj_data.items():
