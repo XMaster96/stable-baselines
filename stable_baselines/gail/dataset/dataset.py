@@ -31,7 +31,7 @@ class Dataset(object):
         logger.log("Average returns: {}".format(self.avg_ret))
         logger.log("Std for returns: {}".format(self.std_ret))
 
-    def check_traj_data(self, expert_path=None, traj_data=None):
+    def check_data(self, expert_path=None, traj_data=None):
         """
         Sanity check expert_path and load traj_data.
         :param expert_path: (str) The path to trajectory data (.npz file). Mutually exclusive with traj_data.

@@ -11,10 +11,8 @@ from stable_baselines.common.cmd_util import make_atari_env
 from stable_baselines.common.vec_env import VecFrameStack, DummyVecEnv
 from stable_baselines.gail import ExpertDataset, ExpertDatasetLSTM, generate_expert_traj
 
-#EXPERT_PATH_PENDULUM = "stable_baselines/gail/dataset/expert_pendulum.npz"
-#EXPERT_PATH_DISCRETE = "stable_baselines/gail/dataset/expert_cartpole.npz"
-EXPERT_PATH_PENDULUM = "expert_pendulum.npz"
-EXPERT_PATH_DISCRETE = "expert_cartpole.npz"
+EXPERT_PATH_PENDULUM = "stable_baselines/gail/dataset/expert_pendulum.npz"
+EXPERT_PATH_DISCRETE = "stable_baselines/gail/dataset/expert_cartpole.npz"
 
 
 @pytest.mark.parametrize("expert_env", [('Pendulum-v0', EXPERT_PATH_PENDULUM, True),
