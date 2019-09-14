@@ -75,7 +75,7 @@ def check_traj_data(expert_path=None, traj_data=None):
     if traj_data is None and expert_path is None:
         raise ValueError("Must specify one of 'traj_data' or 'expert_path'")
     if traj_data is None:
-        traj_data = np.load(expert_path)
+        traj_data = np.load(expert_path, allow_pickle=True)
 
     return traj_data
 
